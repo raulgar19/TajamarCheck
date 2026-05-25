@@ -17,9 +17,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 [P] Create the backend attendance folder scaffold in `TajamarCheckApi/TajamarCheckApi/Controllers`, `TajamarCheckApi/TajamarCheckApi/Data`, `TajamarCheckApi/TajamarCheckApi/Middlewares`, `TajamarCheckApi/TajamarCheckApi/Models`, `TajamarCheckApi/TajamarCheckApi/Repositories`, and `TajamarCheckApi/TajamarCheckApi/Services`
-- [ ] T002 [P] Create the frontend attendance folder scaffold in `tajamarcheck/src/app/attendance`, `tajamarcheck/src/app/attendance/student-attendance`, and `tajamarcheck/src/app/attendance/teacher-attendance`
-- [ ] T003 Add the required backend package references for EF Core SQL Server and Scalar API Reference in `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.csproj`
+- [X] T001 [P] Create the backend attendance folder scaffold in `TajamarCheckApi/TajamarCheckApi/Controllers`, `TajamarCheckApi/TajamarCheckApi/Data`, `TajamarCheckApi/TajamarCheckApi/Middlewares`, `TajamarCheckApi/TajamarCheckApi/Models`, `TajamarCheckApi/TajamarCheckApi/Repositories`, and `TajamarCheckApi/TajamarCheckApi/Services`
+- [X] T002 [P] Create the frontend attendance folder scaffold in `tajamarcheck/src/app/attendance`, `tajamarcheck/src/app/attendance/student-attendance`, and `tajamarcheck/src/app/attendance/teacher-attendance`
+- [X] T003 Add the required backend package references for EF Core SQL Server and Scalar API Reference in `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.csproj`
 
 ---
 
