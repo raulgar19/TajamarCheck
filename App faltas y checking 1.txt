@@ -1,0 +1,79 @@
+📋 Especificación Técnica Completa: App Faltas y Checking (V8)
+1. Descripción General
+Sistema integral de gestión de asistencia desarrollado en .NET 10. La aplicación permite el fichaje autónomo del alumno en clases presenciales mediante validación de hardware (IP + Nombre de Dispositivo) y el fichaje manual por el profesor en clases desde casa.
+
+2. Requerimientos de Seguridad y Datos
+Identificadores: Todas las tablas utilizarán GUID (UUID) como Clave Primaria (PK) en lugar de enteros incrementales para mejorar la seguridad y escalabilidad.
+
+Documentación: Uso de Scalar API Reference para la gestión y pruebas de la API.
+
+Validación de Red: Doble factor de identidad de hardware (Dirección IP + Hostname del PC).
+
+3. Modelo de Datos (SQL Server)
+3.1. Tabla: EquiposAutorizados
+Id: GUID (PK).
+
+NombreDispositivo: string (Hostname único del PC del aula).
+
+DireccionIP: string (IP estática asignada).
+
+Activo: boolean.
+
+3.2. Tabla: Sesiones
+Id: GUID (PK).
+
+TipoClase: Enum (Presencial / Casa).
+
+Fecha: datetime.
+
+CursoId: GUID (FK externa).
+
+3.3. Tabla: Fichajes
+Id: GUID (PK).
+
+AlumnoId: GUID (FK externa del sistema de alumnos).
+
+FechaHora: datetime.
+
+EquipoId: GUID (FK a EquiposAutorizados).
+
+Metodo: Enum (Automatico_Alumno / Manual_Profesor).
+
+IpDetectada: string.
+
+HostnameDetectado: string.
+
+4. Lógica de Funcionamiento
+4.1. Escenario: Clase Presencial
+Inicio: El alumno accede desde un PC del aula.
+
+Validación Middleware: Al intentar fichar, el backend captura la IP y el Hostname del cliente.
+
+Cruce de Datos: Se busca en la base de datos un registro donde DireccionIP == IP_Detectada Y NombreDispositivo == Hostname_Detectado.
+
+Registro: Si ambos coinciden y el equipo está activo, se genera el fichaje con éxito.
+
+4.2. Escenario: Clase desde Casa
+Restricción: El sistema bloquea el fichaje autónomo para alumnos (Error 403).
+
+Gestión: El profesor habilita la interfaz de "Pase de Lista Manual" y registra la asistencia de los alumnos presentes en la videollamada.
+
+5. Endpoints Principales (Scalar)
+POST /api/fichaje/alumno: Procesa el registro automático (Valida GUID de alumno + IP + Hostname).
+
+POST /api/admin/asistencia-manual: Permite al profesor crear fichajes en modo "Casa" o corregir errores.
+
+GET /api/admin/equipos: CRUD para gestionar la lista blanca de dispositivos (Uso de GUIDs para identificar equipos).
+
+GET /api/reportes/excel: Exportación de datos de asistencia.
+
+6. Interfaz de Usuario (Frontend)
+Perfil Alumno: Botón de fichaje dinámico. Muestra error si el nombre del equipo o la IP no coinciden con la base de datos.
+
+Perfil Profesor:
+
+Selector de modalidad de clase (Presencial/Casa).
+
+Gestión de equipos autorizados mediante nombres amigables e IPs.
+
+Visualización de estadísticas y exportación a Excel.

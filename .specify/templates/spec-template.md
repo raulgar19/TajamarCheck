@@ -90,6 +90,11 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
+When a project constitution defines language, package-manager, persistence,
+security, or documentation rules, every feature specification MUST reflect those
+constraints in its functional requirements or assumptions instead of leaving
+them implicit.
+
 *Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
