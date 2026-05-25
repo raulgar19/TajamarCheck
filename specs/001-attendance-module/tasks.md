@@ -17,9 +17,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 [P] Create the backend attendance folder scaffold in `TajamarCheckApi/TajamarCheckApi/Controllers`, `TajamarCheckApi/TajamarCheckApi/Data`, `TajamarCheckApi/TajamarCheckApi/Middlewares`, `TajamarCheckApi/TajamarCheckApi/Models`, `TajamarCheckApi/TajamarCheckApi/Repositories`, and `TajamarCheckApi/TajamarCheckApi/Services`
-- [ ] T002 [P] Create the frontend attendance folder scaffold in `tajamarcheck/src/app/attendance`, `tajamarcheck/src/app/attendance/student-attendance`, and `tajamarcheck/src/app/attendance/teacher-attendance`
-- [ ] T003 Add the required backend package references for EF Core SQL Server and Scalar API Reference in `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.csproj`
+- [X] T001 [P] Create the backend attendance folder scaffold in `TajamarCheckApi/TajamarCheckApi/Controllers`, `TajamarCheckApi/TajamarCheckApi/Data`, `TajamarCheckApi/TajamarCheckApi/Middlewares`, `TajamarCheckApi/TajamarCheckApi/Models`, `TajamarCheckApi/TajamarCheckApi/Repositories`, and `TajamarCheckApi/TajamarCheckApi/Services`
+- [X] T002 [P] Create the frontend attendance folder scaffold in `tajamarcheck/src/app/attendance`, `tajamarcheck/src/app/attendance/student-attendance`, and `tajamarcheck/src/app/attendance/teacher-attendance`
+- [X] T003 Add the required backend package references for EF Core SQL Server and Scalar API Reference in `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.csproj`
 
 ---
 
@@ -29,18 +29,18 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create `TajamarCheckApi/TajamarCheckApi/Data/ApplicationDbContext.cs` with `DbSet<Attendance>`, `DbSet<AuthorizedDevice>`, and `DbSet<Session>` plus EF Core configuration for GUID primary keys
-- [ ] T005 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/Attendance.cs` with GUID key, session linkage, timestamps, status, origin, and traceability fields
-- [ ] T006 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/AuthorizedDevice.cs` with GUID key, IP address, hostname, activity flag, and timestamps
-- [ ] T007 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/Session.cs` with GUID key, time window, open-state flag, and teacher linkage
-- [ ] T008 Create `TajamarCheckApi/TajamarCheckApi/Repositories/IAttendanceRepository.cs` with contracts for attendance persistence, session lookup, and device authorization lookup
-- [ ] T009 Create `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs` with `HttpClient` integration to the external identity API and authentication validation helpers
-- [ ] T010 Create `TajamarCheckApi/TajamarCheckApi/Services/IAttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with application use-case boundaries for autonomous and manual attendance
-- [ ] T011 Create `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` scaffold with request IP and hostname extraction helpers
-- [ ] T012 Create `tajamarcheck/src/app/attendance/attendance.models.ts` and `tajamarcheck/src/app/attendance/attendance.service.ts` with typed request/response contracts and `HttpClient` wiring
-- [ ] T013 Create `tajamarcheck/src/app/app.routes.ts` and update `tajamarcheck/src/app/app-module.ts` so Angular routing is available for the attendance views
-- [ ] T014 Update `tajamarcheck/src/app/app.html` to host the main attendance navigation shell and router outlet
-- [ ] T015 Update `TajamarCheckApi/TajamarCheckApi/Program.cs` to register `ApplicationDbContext`, `IAttendanceRepository` with `AddTransient`, `ExternalUserService` via `HttpClient`, `IAttendanceService`, controllers, `NetworkValidationMiddleware`, and Scalar API Reference
+- [X] T004 Create `TajamarCheckApi/TajamarCheckApi/Data/ApplicationDbContext.cs` with `DbSet<Attendance>`, `DbSet<AuthorizedDevice>`, and `DbSet<Session>` plus EF Core configuration for GUID primary keys
+- [X] T005 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/Attendance.cs` with GUID key, session linkage, timestamps, status, origin, and traceability fields
+- [X] T006 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/AuthorizedDevice.cs` with GUID key, IP address, hostname, activity flag, and timestamps
+- [X] T007 [P] Create `TajamarCheckApi/TajamarCheckApi/Models/Session.cs` with GUID key, time window, open-state flag, and teacher linkage
+- [X] T008 Create `TajamarCheckApi/TajamarCheckApi/Repositories/IAttendanceRepository.cs` with contracts for attendance persistence, session lookup, and device authorization lookup
+- [X] T009 Create `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs` with `HttpClient` integration to the external identity API and authentication validation helpers
+- [X] T010 Create `TajamarCheckApi/TajamarCheckApi/Services/IAttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with application use-case boundaries for autonomous and manual attendance
+- [X] T011 Create `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` scaffold with request IP and hostname extraction helpers
+- [X] T012 Create `tajamarcheck/src/app/attendance/attendance.models.ts` and `tajamarcheck/src/app/attendance/attendance.service.ts` with typed request/response contracts and `HttpClient` wiring
+- [X] T013 Create `tajamarcheck/src/app/app.routes.ts` and update `tajamarcheck/src/app/app-module.ts` so Angular routing is available for the attendance views
+- [X] T014 Update `tajamarcheck/src/app/app.html` to host the main attendance navigation shell and router outlet
+- [X] T015 Update `TajamarCheckApi/TajamarCheckApi/Program.cs` to register `ApplicationDbContext`, `IAttendanceRepository` with `AddTransient`, `ExternalUserService` via `HttpClient`, `IAttendanceService`, controllers, `NetworkValidationMiddleware`, and Scalar API Reference
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
