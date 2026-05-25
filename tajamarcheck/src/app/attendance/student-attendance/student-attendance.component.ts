@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 export class StudentAttendanceComponent {
   externalStudentId = '';
   sessionId = '';
+  deviceHostname = window?.location?.hostname ?? '';
   loading = false;
   message = '';
 
@@ -28,7 +29,8 @@ export class StudentAttendanceComponent {
     try {
       const body = {
         externalStudentId: this.externalStudentId,
-        sessionId: this.sessionId
+        sessionId: this.sessionId,
+        deviceHostname: this.deviceHostname
       };
       const res: any = await this.http.post('/api/attendance/student', body).toPromise();
       this.message = res?.message ?? 'Fichaje realizado.';
