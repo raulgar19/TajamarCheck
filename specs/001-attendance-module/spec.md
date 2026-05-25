@@ -65,24 +65,26 @@ Como sistema, quiero validar cada petición de fichaje contra la base de datos u
 ### Functional Requirements
 
 - **FR-001**: The system MUST define `Attendance`, `AuthorizedDevice`, and `Session` entities with GUID primary keys prepared for EF Core and SQL Server.
-- **FR-002**: The system MUST provide `IAttendanceRepository` and `AttendanceRepository` to store and retrieve attendance-related data from the database.
-- **FR-003**: The system MUST validate autonomous student attendance through `NetworkValidationMiddleware` before the request reaches the controller.
-- **FR-004**: The middleware MUST compare the request IP address and the machine hostname against authorized records stored in the database.
-- **FR-005**: The system MUST expose `POST /api/attendance/student` for autonomous student check-in.
-- **FR-006**: The system MUST expose `POST /api/admin/attendance-manual` for teacher-managed manual attendance.
-- **FR-007**: The system MUST register stateless repositories with transient lifetime in dependency injection.
-- **FR-008**: The system MUST integrate Scalar API Reference for endpoint discovery and testing.
-- **FR-009**: The frontend MUST include an `AttendanceService` that consumes the API through `HttpClient`.
-- **FR-010**: The frontend MUST include `StudentAttendanceComponent` with a dynamic check-in button and clear error handling.
-- **FR-011**: The frontend MUST include `TeacherAttendanceComponent` for manual attendance workflows.
-- **FR-012**: The frontend installation instructions MUST explicitly use `pnpm`.
-- **FR-013**: All code identifiers, entity names, and database artifacts MUST remain in English.
-- **FR-014**: User-facing messages in the Angular UI and API responses MUST be in Spanish.
-- **FR-015**: The system MUST record successful and rejected attendance attempts for traceability.
+- **FR-002**: The `Attendance` entity MUST use `ExternalStudentId` as the only student identifier and MUST NOT create any local foreign key, table, entity, or repository for users or students.
+- **FR-003**: The system MUST provide `IAttendanceRepository` and `AttendanceRepository` to store and retrieve attendance-related local data from the database.
+- **FR-004**: The system MUST provide `ExternalUserService` to communicate with the external identity API through `HttpClient` and validate authentication data for attendance flows.
+- **FR-005**: The system MUST validate autonomous student attendance through `NetworkValidationMiddleware` before the request reaches the controller.
+- **FR-006**: The middleware MUST capture the request IP address and hostname and allow the flow to continue toward the controller for validation orchestration.
+- **FR-007**: The system MUST expose `POST /api/attendance/student` for autonomous student check-in.
+- **FR-008**: The system MUST expose `POST /api/admin/attendance-manual` for teacher-managed manual attendance.
+- **FR-009**: The system MUST register stateless repositories with transient lifetime in dependency injection.
+- **FR-010**: The system MUST register the external identity `HttpClient` and integrate Scalar API Reference for endpoint discovery and testing.
+- **FR-011**: The frontend MUST include an `AttendanceService` that consumes the API through `HttpClient`.
+- **FR-012**: The frontend MUST include `StudentAttendanceComponent` with a dynamic check-in button and clear error handling.
+- **FR-013**: The frontend MUST include `TeacherAttendanceComponent` for manual attendance workflows.
+- **FR-014**: The frontend installation instructions MUST explicitly use `pnpm`.
+- **FR-015**: All code identifiers, entity names, and database artifacts MUST remain in English.
+- **FR-016**: User-facing messages in the Angular UI and API responses MUST be in Spanish.
+- **FR-017**: The system MUST record successful and rejected attendance attempts for traceability.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Attendance**: Represents an attendance record with student context, timestamp, origin, and outcome.
+- **Attendance**: Represents an attendance record with external student identity, timestamp, origin, and outcome.
 - **AuthorizedDevice**: Represents a device allowed to perform autonomous attendance, identified by IP address and hostname.
 - **Session**: Represents an attendance session or time window in which records are accepted.
 
@@ -104,3 +106,4 @@ Como sistema, quiero validar cada petición de fichaje contra la base de datos u
 - The attendance session model already exists conceptually or will be created as part of the module.
 - Angular installation and package management will use `pnpm` only.
 - The API will return user-facing errors in Spanish, while source code and database naming remain in English.
+- No local user or student table exists in this project; external identity data is obtained through an external API.

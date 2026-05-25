@@ -2,11 +2,11 @@
 
 ## Attendance
 
-Represents a single attendance event for a student.
+Represents a single attendance event for an externally identified student.
 
 ### Fields
 - `Id: Guid` - Primary key.
-- `StudentId: Guid` - References the student who checked in.
+- `ExternalStudentId: Guid` - External identity for the student who checked in.
 - `SessionId: Guid` - References the active attendance session.
 - `AttendanceType: string` - Indicates autonomous or manual attendance.
 - `Status: string` - Indicates accepted, rejected, or pending.
@@ -20,6 +20,7 @@ Represents a single attendance event for a student.
 - Uses a GUID primary key.
 - Must be stored in SQL Server through EF Core.
 - Must keep technical names in English.
+- Must not define any local foreign key or local user/student relationship.
 - Must preserve traceability for both accepted and rejected attempts.
 
 ## AuthorizedDevice
@@ -61,7 +62,7 @@ Represents an attendance window or active class session.
 
 - `Session` has many `Attendance` records.
 - `AuthorizedDevice` is validated independently and is not a direct parent of `Attendance`.
-- `Attendance` belongs to one `Session` and one student identity.
+- `Attendance` belongs to one `Session` and one `ExternalStudentId` value.
 
 ## State Notes
 

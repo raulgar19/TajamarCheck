@@ -10,8 +10,9 @@
 Implement the central Attendance module for CheckingTajamar as a full-stack
 increment: SQL Server-backed domain entities, repository/service/controller
 layers in .NET 10, a network validation middleware for autonomous student
-check-ins, Scalar API Reference, and an Angular 21.2.12 frontend with a service
-and two role-based components.
+check-ins, Scalar API Reference, an Angular 21.2.12 frontend with a service
+and two role-based components, and an external identity integration via
+`ExternalUserService`.
 
 ## Technical Context
 
@@ -23,13 +24,13 @@ and two role-based components.
 
 **Language/Version**: C# on .NET 10; TypeScript strict on Angular 21.2.12  
 **Primary Dependencies**: ASP.NET Core Web API, Entity Framework Core, SQL Server,
-Scalar API Reference, Angular HttpClient  
+Scalar API Reference, Angular HttpClient, external identity API client  
 **Storage**: SQL Server with EF Core migrations  
 **Testing**: Backend API and repository tests plus Angular component/service tests; build validation for both apps  
 **Target Platform**: Full-stack web application with browser SPA and HTTPS API  
 **Project Type**: Web application with separate backend and frontend projects  
 **Performance Goals**: Autonomous check-in should complete in under 30 seconds end-to-end; middleware validation should stay lightweight  
-**Constraints**: GUID primary keys, controller-service-repository layering, AddTransient for stateless repositories, Spanish UI/API text, English code and database names, pnpm only for frontend installs  
+**Constraints**: GUID primary keys, controller-service-repository layering, AddTransient for stateless repositories, Spanish UI/API text, English code and database names, pnpm only for frontend installs, no local user/student tables  
 **Scale/Scope**: School attendance workflow for a bounded academic deployment, with student autonomous check-ins and teacher manual entries
 
 ## Constitution Check
@@ -79,6 +80,7 @@ TajamarCheckApi/TajamarCheckApi/
 │   ├── IAttendanceRepository.cs
 │   └── AttendanceRepository.cs
 ├── Services/
+│   ├── ExternalUserService.cs
 │   ├── IAttendanceService.cs
 │   └── AttendanceService.cs
 └── Program.cs
@@ -111,12 +113,82 @@ attendance feature folder under `tajamarcheck/src/app/` and a root route file.
 - The browser SPA cannot reliably read the machine hostname by itself, so the
   student attendance flow will carry hostname data through a controlled request
   field/header that the middleware validates against `AuthorizedDevice`.
+- There is no local user or student table; the controller must call an external
+  identity API through `ExternalUserService` before committing attendance.
+- `Attendance.ExternalStudentId` is the only student identifier stored locally;
+  no foreign key to any user or student table will be created.
 - `ApplicationDbContext` will be introduced under `Data/` because the current
   backend project has only the default Web SDK and no persistence layer.
 - Scalar will be wired into the API startup in development so the attendance
   endpoints can be explored and exercised without adding a separate docs site.
 - The frontend will use Angular route-driven navigation with a dedicated
   attendance service rather than coupling HTTP calls into the components.
+
+## Backend File Plan
+
+### Models
+
+- `TajamarCheckApi/TajamarCheckApi/Models/Attendance.cs`
+- `TajamarCheckApi/TajamarCheckApi/Models/AuthorizedDevice.cs`
+- `TajamarCheckApi/TajamarCheckApi/Models/Session.cs`
+
+### Repositories
+
+- `TajamarCheckApi/TajamarCheckApi/Repositories/IAttendanceRepository.cs`
+- `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+
+### Services
+
+- `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs`
+- `TajamarCheckApi/TajamarCheckApi/Services/IAttendanceService.cs`
+- `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs`
+
+### Controllers
+
+- `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs`
+
+### Middlewares
+
+- `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs`
+
+## Frontend File Plan
+
+### Attendance Feature
+
+- `tajamarcheck/src/app/attendance/attendance.service.ts`
+- `tajamarcheck/src/app/attendance/attendance.models.ts`
+- `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.ts`
+- `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.html`
+- `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.css`
+- `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.ts`
+- `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.html`
+- `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.css`
+
+### Root Angular Wiring
+
+- `tajamarcheck/src/app/app.routes.ts`
+- `tajamarcheck/src/app/app.html` (root template equivalent to app.component.html in this workspace)
+- `tajamarcheck/src/app/app-module.ts`
+
+## Program.cs Integration Plan
+
+### DbContext and EF Core
+
+- Register `ApplicationDbContext` with SQL Server using the app connection string.
+- Configure EF Core for the attendance entities only: `Attendance`, `AuthorizedDevice`, and `Session`.
+- Explicitly omit any `User` or `Student` entity set because the domain uses external identity data only.
+
+### Repository and Service DI
+
+- Register `IAttendanceRepository` with `AddTransient`.
+- Register `IAttendanceService` with the lifetime required by the chosen orchestration pattern.
+- Register `ExternalUserService` through `AddHttpClient` so the external API client is typed and centrally configured.
+
+### Middleware and API Reference
+
+- Add `NetworkValidationMiddleware` into the pipeline before the attendance controller endpoints are reached.
+- Configure Scalar API Reference in development to document and test the attendance endpoints.
+- Keep `MapControllers()` and the attendance routes enabled after the middleware pipeline.
 
 ## Complexity Tracking
 

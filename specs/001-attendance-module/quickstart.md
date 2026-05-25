@@ -12,7 +12,8 @@
 1. Restore and build the API project.
 2. Configure the SQL Server connection string in `appsettings.Development.json`.
 3. Apply EF Core migrations after the new data model is added.
-4. Run the API and verify that Scalar is available in development.
+4. Configure the external identity API base URL and credentials used by `ExternalUserService`.
+5. Run the API and verify that Scalar is available in development.
 
 ### Expected backend files to add
 
@@ -22,6 +23,7 @@
 - `TajamarCheckApi/TajamarCheckApi/Models/Session.cs`
 - `TajamarCheckApi/TajamarCheckApi/Repositories/IAttendanceRepository.cs`
 - `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+- `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs`
 - `TajamarCheckApi/TajamarCheckApi/Services/IAttendanceService.cs`
 - `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs`
 - `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs`
@@ -31,6 +33,7 @@
 
 - Register `ApplicationDbContext` with SQL Server.
 - Register `IAttendanceRepository` with `AddTransient`.
+- Register the external identity `HttpClient` and `ExternalUserService` with `AddHttpClient`.
 - Add `NetworkValidationMiddleware` into the HTTP pipeline.
 - Map Scalar API Reference in development.
 
@@ -60,4 +63,5 @@
 - Teacher manual attendance works from the admin flow.
 - API responses to the browser are in Spanish.
 - Code identifiers and entity names remain in English.
+- No local user or student entities are created in the backend.
 - `pnpm` is the only package manager used for frontend dependency installation.
