@@ -52,11 +52,11 @@
 
 **Independent Test**: A valid request from an authorized IP and hostname records attendance successfully and shows the result in Spanish.
 
-- [ ] T016 [P] [US1] Implement autonomous attendance persistence and session checks in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
-- [ ] T017 [US1] Implement the autonomous check-in workflow in `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with duplicate-session prevention, `ExternalStudentId`, and Spanish result messages
-- [ ] T018 [US1] Implement `POST /api/attendance/student` in `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` orchestrating `IAttendanceRepository` and `ExternalUserService`
-- [ ] T019 [US1] Build `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.ts`, `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.html`, and `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.css` with a dynamic check-in button, loading state, and Spanish error handling
-- [ ] T020 [US1] Add the student route entry and navigation link in `tajamarcheck/src/app/app.routes.ts` and `tajamarcheck/src/app/app.html`
+ [X] T016 [P] [US1] Implement autonomous attendance persistence and session checks in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+ [X] T017 [US1] Implement the autonomous check-in workflow in `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with duplicate-session prevention, `ExternalStudentId`, and Spanish result messages
+ [X] T018 [US1] Implement `POST /api/attendance/student` in `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` orchestrating `IAttendanceRepository` and `ExternalUserService`
+ [X] T019 [US1] Build `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.ts`, `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.html`, and `tajamarcheck/src/app/attendance/student-attendance/student-attendance.component.css` with a dynamic check-in button, loading state, and Spanish error handling
+ [X] T020 [US1] Add the student route entry and navigation link in `tajamarcheck/src/app/app.routes.ts` and `tajamarcheck/src/app/app.html`
 
 **Checkpoint**: User Story 1 should now be fully functional and independently testable
 
@@ -84,9 +84,9 @@
 
 **Independent Test**: A request from an unauthorized device is blocked before the controller handles it and returns a Spanish error.
 
-- [ ] T026 [P] [US3] Implement authorized-device lookup and IP/hostname matching in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
-- [ ] T027 [US3] Complete `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` to capture the request IP, resolve the hostname, and pass the request along for controller orchestration
-- [ ] T028 [US3] Update `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` so rejection paths return Spanish messages, preserve traceability, and consult `ExternalUserService`
+ - [X] T026 [P] [US3] Implement authorized-device lookup and IP/hostname matching in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+ - [X] T027 [US3] Complete `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` to capture the request IP, resolve the hostname, and pass the request along for controller orchestration
+ - [X] T028 [US3] Update `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` so rejection paths return Spanish messages, preserve traceability, and consult `ExternalUserService`
 
 **Checkpoint**: All user stories should now be independently functional
 
