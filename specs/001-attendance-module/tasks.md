@@ -97,8 +97,9 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T029 [P] Update `specs/001-attendance-module/quickstart.md` with the final run commands, backend startup notes, and `pnpm`-based frontend installation steps
-- [ ] T030 Update `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.http` with sample requests for the student and teacher attendance endpoints
-- [ ] T031 Verify language consistency across `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs`, `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs`, `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs`, and `tajamarcheck/src/app/attendance/*` so code stays in English and user-facing messages stay in Spanish
+ - [X] T029 [P] Update `specs/001-attendance-module/quickstart.md` with the final run commands, backend startup notes, and `pnpm`-based frontend installation steps
+ - [X] T030 Update `TajamarCheckApi/TajamarCheckApi/TajamarCheckApi.http` with sample requests for the student and teacher attendance endpoints
+ - [X] T031 Verify language consistency across `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs`, `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs`, `TajamarCheckApi/TajamarCheckApi/Services/ExternalUserService.cs`, and `tajamarcheck/src/app/attendance/*` so code stays in English and user-facing messages stay in Spanish
 
 ---
 
