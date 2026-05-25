@@ -87,6 +87,9 @@
 - [ ] T026 [P] [US3] Implement authorized-device lookup and IP/hostname matching in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
 - [ ] T027 [US3] Complete `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` to capture the request IP, resolve the hostname, and pass the request along for controller orchestration
 - [ ] T028 [US3] Update `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` so rejection paths return Spanish messages, preserve traceability, and consult `ExternalUserService`
+ - [X] T026 [P] [US3] Implement authorized-device lookup and IP/hostname matching in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+ - [X] T027 [US3] Complete `TajamarCheckApi/TajamarCheckApi/Middlewares/NetworkValidationMiddleware.cs` to capture the request IP, resolve the hostname, and pass the request along for controller orchestration
+ - [X] T028 [US3] Update `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` and `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` so rejection paths return Spanish messages, preserve traceability, and consult `ExternalUserService`
 
 **Checkpoint**: All user stories should now be independently functional
 

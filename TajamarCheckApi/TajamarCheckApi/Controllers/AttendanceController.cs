@@ -32,8 +32,14 @@ public sealed class AttendanceController : ControllerBase
     {
         try
         {
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            var hostname = request.DeviceHostname ?? string.Empty;
+            // Prefer values captured by NetworkValidationMiddleware (if present)
+            var ipAddress = HttpContext.Items.ContainsKey(TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientIpItemKey)
+                ? (HttpContext.Items[TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientIpItemKey] as string ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty)
+                : (HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty);
+
+            var hostname = HttpContext.Items.ContainsKey(TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientHostnameItemKey)
+                ? (HttpContext.Items[TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientHostnameItemKey] as string ?? request.DeviceHostname ?? string.Empty)
+                : (request.DeviceHostname ?? string.Empty);
             var attendance = await attendanceService.RegisterStudentAttendanceAsync(request.ExternalStudentId, request.SessionId, ipAddress, hostname, cancellationToken);
             return Ok(new { success = true, message = "Fichaje realizado.", attendanceId = attendance.Id });
         }

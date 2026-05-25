@@ -31,6 +31,24 @@ public sealed class NetworkValidationMiddleware(RequestDelegate next, ILogger<Ne
             return hostnameValues.ToString();
         }
 
+        // Try reverse DNS lookup from the remote IP as a best-effort fallback
+        try
+        {
+            var ip = context.Connection.RemoteIpAddress?.ToString();
+            if (!string.IsNullOrWhiteSpace(ip))
+            {
+                var entry = System.Net.Dns.GetHostEntryAsync(ip).GetAwaiter().GetResult();
+                if (!string.IsNullOrWhiteSpace(entry.HostName))
+                {
+                    return entry.HostName;
+                }
+            }
+        }
+        catch
+        {
+            // ignore DNS failures and fall back to request host
+        }
+
         return context.Request.Host.Host;
     }
 }
