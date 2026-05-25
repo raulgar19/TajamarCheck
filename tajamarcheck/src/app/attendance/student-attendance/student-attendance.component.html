@@ -1,0 +1,17 @@
+<div class="student-attendance">
+  <h2>Fichaje autónomo</h2>
+
+  <label>
+    ID de estudiante
+    <input [(ngModel)]="externalStudentId" placeholder="GUID" />
+  </label>
+
+  <label>
+    ID de sesión
+    <input [(ngModel)]="sessionId" placeholder="GUID" />
+  </label>
+
+  <button (click)="checkIn()" [disabled]="loading">{{ loading ? 'Registrando...' : 'Fichar' }}</button>
+
+  <p class="message" *ngIf="message">{{ message }}</p>
+</div>

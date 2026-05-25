@@ -8,4 +8,5 @@ import { Component, signal } from '@angular/core';
 })
 export class App {
   protected readonly title = signal('tajamarcheck');
+  public readonly currentYear = new Date().getFullYear();
 }
