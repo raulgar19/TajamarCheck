@@ -65,3 +65,38 @@
 - Code identifiers and entity names remain in English.
 - No local user or student entities are created in the backend.
 - `pnpm` is the only package manager used for frontend dependency installation.
+
+## Final run commands (quick)
+
+Start backend (from repo root):
+
+```bash
+cd TajamarCheckApi/TajamarCheckApi
+dotnet restore
+dotnet build
+dotnet run
+```
+
+Start frontend (from repo root):
+
+```bash
+cd tajamarcheck
+pnpm install
+pnpm start
+```
+
+The frontend will be available at `http://localhost:4200` and the API at `http://localhost:5081` by default.
+
+Notes:
+
+- Configure the SQL Server connection string in `appsettings.Development.json` or set the `AttendanceDb` environment variable before running migrations.
+- Apply EF Core migrations from the API project folder:
+
+```bash
+cd TajamarCheckApi/TajamarCheckApi
+dotnet ef migrations add InitialAttendance
+dotnet ef database update
+```
+
+- Ensure `ExternalUsers:BaseUrl` is configured for `ExternalUserService` (e.g., in `appsettings.Development.json`).
+- If ports change, update `TajamarCheckApi.http` and any frontend proxies accordingly.

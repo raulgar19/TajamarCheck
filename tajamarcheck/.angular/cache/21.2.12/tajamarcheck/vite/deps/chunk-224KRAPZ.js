@@ -5,9 +5,9 @@ import {
   inject,
   setClassMetadata,
   ɵɵdefineInjectable
-} from "./chunk-5CKAHIE3.js";
+} from "./chunk-WYSPOCNC.js";
 
-// node_modules/.pnpm/@angular+common@21.2.14_@an_48990d3b0b19ae598876d7985428d1e0/node_modules/@angular/common/fesm2022/_platform_location-chunk.mjs
+// node_modules/.pnpm/@angular+common@21.2.14_@angular+core@21.2.14_@angular+compiler@21.2.14_rxjs@7.8.2__rxjs@7.8.2/node_modules/@angular/common/fesm2022/_platform_location-chunk.mjs
 var _DOM = null;
 function getDOM() {
   return _DOM;
@@ -123,7 +123,7 @@ var BrowserPlatformLocation = class _BrowserPlatformLocation extends PlatformLoc
   }], () => [], null);
 })();
 
-// node_modules/.pnpm/@angular+common@21.2.14_@an_48990d3b0b19ae598876d7985428d1e0/node_modules/@angular/common/fesm2022/_xhr-chunk.mjs
+// node_modules/.pnpm/@angular+common@21.2.14_@angular+core@21.2.14_@angular+compiler@21.2.14_rxjs@7.8.2__rxjs@7.8.2/node_modules/@angular/common/fesm2022/_xhr-chunk.mjs
 function parseCookieValue(cookieStr, name) {
   name = encodeURIComponent(name);
   for (const cookie of cookieStr.split(";")) {
@@ -148,4 +148,4 @@ export {
   parseCookieValue,
   XhrFactory
 };
-//# sourceMappingURL=chunk-B5CLNDJU.js.map
+//# sourceMappingURL=chunk-224KRAPZ.js.map

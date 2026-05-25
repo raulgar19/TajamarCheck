@@ -1,17 +1,17 @@
 import {
-  withHttpTransferCache
-} from "./chunk-IMZKSGVE.js";
-import {
   CommonModule,
   PLATFORM_BROWSER_ID
-} from "./chunk-D4MVMTQQ.js";
+} from "./chunk-NNFNSVFK.js";
+import {
+  withHttpTransferCache
+} from "./chunk-HV2ZSMPR.js";
 import {
   DomAdapter,
   XhrFactory,
   getDOM,
   parseCookieValue,
   setRootDomAdapter
-} from "./chunk-B5CLNDJU.js";
+} from "./chunk-224KRAPZ.js";
 import {
   APP_ID,
   ApplicationModule,
@@ -43,6 +43,7 @@ import {
   Version,
   ViewEncapsulation,
   XSS_SECURITY_URL,
+  __spreadValues,
   _global,
   _sanitizeHtml,
   _sanitizeUrl,
@@ -72,12 +73,9 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule,
   ɵɵinject
-} from "./chunk-5CKAHIE3.js";
-import {
-  __spreadValues
-} from "./chunk-UNLY6EWG.js";
+} from "./chunk-WYSPOCNC.js";
 
-// node_modules/.pnpm/@angular+platform-browser@2_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/_dom_renderer-chunk.mjs
+// node_modules/.pnpm/@angular+platform-browser@21.2.14_@angular+common@21.2.14_@angular+core@21.2.14_@angula_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/_dom_renderer-chunk.mjs
 var EventManagerPlugin = class {
   _doc;
   constructor(_doc) {
@@ -762,7 +760,7 @@ var EmulatedEncapsulationDomRenderer2 = class extends NoneEncapsulationDomRender
   }
 };
 
-// node_modules/.pnpm/@angular+platform-browser@2_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/_browser-chunk.mjs
+// node_modules/.pnpm/@angular+platform-browser@21.2.14_@angular+common@21.2.14_@angular+core@21.2.14_@angula_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/_browser-chunk.mjs
 var BrowserDomAdapter = class _BrowserDomAdapter extends DomAdapter {
   supportsDOMEvents = true;
   static makeCurrent() {
@@ -1127,7 +1125,7 @@ var BrowserModule = class _BrowserModule {
   }], () => [], null);
 })();
 
-// node_modules/.pnpm/@angular+platform-browser@2_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs
+// node_modules/.pnpm/@angular+platform-browser@21.2.14_@angular+common@21.2.14_@angular+core@21.2.14_@angula_ff72d195dd905b36781c4f84bcd25e73/node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs
 var Meta = class _Meta {
   _doc;
   _dom;
@@ -1746,4 +1744,4 @@ export {
   provideClientHydration,
   VERSION
 };
-//# sourceMappingURL=chunk-BUKRRPBS.js.map
+//# sourceMappingURL=chunk-ZIPQ3YIH.js.map

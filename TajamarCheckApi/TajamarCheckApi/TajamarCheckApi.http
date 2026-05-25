@@ -4,3 +4,26 @@ GET {{TajamarCheckApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Student autonomous check-in
+POST {{TajamarCheckApi_HostAddress}}/api/attendance/student
+Content-Type: application/json
+
+{
+	"externalStudentId": "00000000-0000-0000-0000-000000000000",
+	"sessionId": "00000000-0000-0000-0000-000000000000",
+	"deviceHostname": "school-device.local"
+}
+
+###
+
+### Teacher manual attendance
+POST {{TajamarCheckApi_HostAddress}}/api/admin/attendance-manual
+Content-Type: application/json
+
+{
+	"externalStudentId": "00000000-0000-0000-0000-000000000000",
+	"sessionId": "00000000-0000-0000-0000-000000000000",
+	"reason": "Incidencia: llegada tarde"
+}
+
