@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+The plan MUST satisfy these constitution gates before proceeding:
+
+- Backend architecture follows Controller -> Service -> Repository with explicit interfaces.
+- Stateless repositories are registered with `AddTransient` and never accessed directly from controllers.
+- Angular consumes the API only through dedicated `HttpClient` services.
+- SQL Server and Entity Framework Core are the persistence baseline, and all primary keys use GUID/UUID.
+- Scalar API Reference is included for API documentation and testing.
+- The autonomous on-site check-in middleware validates both IP and hostname.
+- Code, database identifiers, and technical artifacts remain in English; UI text and API responses remain in Spanish.
+- `pnpm` is the only allowed package manager for the frontend.
 
 ## Project Structure
 
