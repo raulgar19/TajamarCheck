@@ -68,11 +68,11 @@
 
 **Independent Test**: A teacher request creates a manual attendance record and returns a Spanish confirmation or validation error.
 
-- [ ] T021 [P] [US2] Implement manual attendance persistence and teacher-session lookup in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
-- [ ] T022 [US2] Implement the manual attendance workflow in `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with professor validation, `ExternalStudentId`, and Spanish feedback
-- [ ] T023 [US2] Implement `POST /api/admin/attendance-manual` in `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` orchestrating `IAttendanceRepository` and `ExternalUserService`
-- [ ] T024 [US2] Build `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.ts`, `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.html`, and `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.css` for the manual attendance workflow
-- [ ] T025 [US2] Add the teacher route entry and navigation link in `tajamarcheck/src/app/app.routes.ts` and `tajamarcheck/src/app/app.html`
+- [X] T021 [P] [US2] Implement manual attendance persistence and teacher-session lookup in `TajamarCheckApi/TajamarCheckApi/Repositories/AttendanceRepository.cs`
+- [X] T022 [US2] Implement the manual attendance workflow in `TajamarCheckApi/TajamarCheckApi/Services/AttendanceService.cs` with professor validation, `ExternalStudentId`, and Spanish feedback
+- [X] T023 [US2] Implement `POST /api/admin/attendance-manual` in `TajamarCheckApi/TajamarCheckApi/Controllers/AttendanceController.cs` orchestrating `IAttendanceRepository` and `ExternalUserService`
+- [X] T024 [US2] Build `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.ts`, `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.html`, and `tajamarcheck/src/app/attendance/teacher-attendance/teacher-attendance.component.css` for the manual attendance workflow
+- [X] T025 [US2] Add the teacher route entry and navigation link in `tajamarcheck/src/app/app.routes.ts` and `tajamarcheck/src/app/app.html`
 
 **Checkpoint**: User Stories 1 and 2 should both be functional and independently testable
 
