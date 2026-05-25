@@ -1,0 +1,66 @@
+# ------------------------------
+# .NET / Visual Studio
+# ------------------------------
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ------------------------------
+# NuGet
+# ------------------------------
+*.nupkg
+*.snupkg
+packages/
+
+# ------------------------------
+# Test / Coverage
+# ------------------------------
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# ------------------------------
+# Angular / Node
+# ------------------------------
+node_modules/
+dist/
+tmp/
+out-tsc/
+.angular/cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.sass-cache/
+*.tsbuildinfo
+
+# ------------------------------
+# IDE / Editors
+# ------------------------------
+.vscode/
+.idea/
+
+# ------------------------------
+# OS files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Local env / app settings
+# ------------------------------
+.env
+.env.*
+appsettings.Local.json
