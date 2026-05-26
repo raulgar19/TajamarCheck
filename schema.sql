@@ -1,0 +1,25 @@
+CREATE DATABASE CheckingTajamar;
+GO
+
+USE CheckingTajamar;
+GO
+
+CREATE TABLE Absences (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    StudentId INT NOT NULL,
+    Subject NVARCHAR(200) NOT NULL,
+    Date DATETIME2 NOT NULL,
+    Time NVARCHAR(50) NOT NULL
+);
+
+CREATE TABLE AttendanceLogs (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    StudentId INT NOT NULL,
+    Type NVARCHAR(50) NOT NULL,
+    Subject NVARCHAR(200) NOT NULL,
+    Date DATETIME2 NOT NULL,
+    Time NVARCHAR(50) NOT NULL,
+    Minutes INT NULL,
+    Text NVARCHAR(250) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);

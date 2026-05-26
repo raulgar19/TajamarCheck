@@ -1,65 +1,127 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using TajamarCheckApi.Services;
+using Microsoft.EntityFrameworkCore;
+using TajamarCheckApi.Data;
+using TajamarCheckApi.Models;
 
 namespace TajamarCheckApi.Controllers;
 
 [ApiController]
-public sealed class AttendanceController : ControllerBase
+[Route("api/attendance")]
+public sealed class AttendanceController(ApplicationDbContext context) : ControllerBase
 {
-    private readonly IAttendanceService attendanceService;
-
-    public AttendanceController(IAttendanceService attendanceService)
+    // GET: api/attendance/absences/{studentId}
+    [HttpGet("absences/{studentId:int}")]
+    public async Task<IActionResult> GetAbsences(int studentId)
     {
-        this.attendanceService = attendanceService;
+        var absences = await context.Absences
+            .Where(a => a.StudentId == studentId)
+            .OrderByDescending(a => a.Date)
+            .ToListAsync();
+
+        return Ok(absences);
     }
 
-    public sealed class ManualAttendanceRequest
+    // GET: api/attendance/logs/{studentId}
+    [HttpGet("logs/{studentId:int}")]
+    public async Task<IActionResult> GetLogs(int studentId)
     {
-        public Guid ExternalStudentId { get; set; }
-        public Guid SessionId { get; set; }
-        public string Reason { get; set; } = string.Empty;
+        var logs = await context.AttendanceLogs
+            .Where(l => l.StudentId == studentId)
+            .OrderByDescending(l => l.Date)
+            .ThenByDescending(l => l.CreatedAt)
+            .ToListAsync();
+
+        return Ok(logs);
     }
 
-    public sealed class StudentAttendanceRequest
+    // POST: api/attendance/absence
+    [HttpPost("absence")]
+    public async Task<IActionResult> CreateAbsence([FromBody] Absence absence)
     {
-        public Guid ExternalStudentId { get; set; }
-        public Guid SessionId { get; set; }
-        public string? DeviceHostname { get; set; }
+        if (absence == null)
+        {
+            return BadRequest(new { success = false, message = "Datos de falta no válidos." });
+        }
+
+        if (absence.StudentId <= 0)
+        {
+            return BadRequest(new { success = false, message = "El Id de estudiante es requerido y debe ser mayor a 0." });
+        }
+
+        if (string.IsNullOrWhiteSpace(absence.Subject))
+        {
+            return BadRequest(new { success = false, message = "La asignatura/materia es requerida." });
+        }
+
+        if (string.IsNullOrWhiteSpace(absence.Time))
+        {
+            return BadRequest(new { success = false, message = "El horario es requerido." });
+        }
+
+        if (absence.Date == default)
+        {
+            absence.Date = DateTime.Today;
+        }
+
+        context.Absences.Add(absence);
+        await context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetAbsences), new { studentId = absence.StudentId }, new { success = true, data = absence });
     }
 
-    [HttpPost("/api/attendance/student")]
-    public async Task<IActionResult> RegisterStudent([FromBody] StudentAttendanceRequest request, CancellationToken cancellationToken)
+    // POST: api/attendance/log
+    [HttpPost("log")]
+    public async Task<IActionResult> CreateLog([FromBody] AttendanceLog log)
     {
-        try
+        if (log == null)
         {
-            // Prefer values captured by NetworkValidationMiddleware (if present)
-            var ipAddress = HttpContext.Items.ContainsKey(TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientIpItemKey)
-                ? (HttpContext.Items[TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientIpItemKey] as string ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty)
-                : (HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty);
+            return BadRequest(new { success = false, message = "Datos de registro no válidos." });
+        }
 
-            var hostname = HttpContext.Items.ContainsKey(TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientHostnameItemKey)
-                ? (HttpContext.Items[TajamarCheckApi.Middlewares.NetworkValidationMiddleware.ClientHostnameItemKey] as string ?? request.DeviceHostname ?? string.Empty)
-                : (request.DeviceHostname ?? string.Empty);
-            var attendance = await attendanceService.RegisterStudentAttendanceAsync(request.ExternalStudentId, request.SessionId, ipAddress, hostname, cancellationToken);
-            return Ok(new { success = true, message = "Fichaje realizado.", attendanceId = attendance.Id });
-        }
-        catch (InvalidOperationException ex)
+        if (log.StudentId <= 0)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(new { success = false, message = "El Id de estudiante es requerido y debe ser mayor a 0." });
         }
-    }
 
-    [HttpPost("/api/admin/attendance-manual")]
-    public async Task<IActionResult> RegisterManual([FromBody] ManualAttendanceRequest request, CancellationToken cancellationToken)
-    {
-        try
+        if (string.IsNullOrWhiteSpace(log.Type))
         {
-            var attendance = await attendanceService.RegisterManualAttendanceAsync(request.ExternalStudentId, request.SessionId, request.Reason, cancellationToken);
-            return Ok(new { success = true, message = "Fichaje manual registrado.", attendanceId = attendance.Id });
+            return BadRequest(new { success = false, message = "El tipo de asistencia ('Entrada', 'Salida', 'Retraso') es requerido." });
         }
-        catch (InvalidOperationException ex)
+
+        var normalizedType = log.Type.Trim();
+        if (!string.Equals(normalizedType, "Entrada", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(normalizedType, "Salida", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(normalizedType, "Retraso", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(new { success = false, message = "Tipo de registro no válido. Valores válidos: 'Entrada', 'Salida', 'Retraso'." });
         }
+
+        // Normalizar tipo
+        log.Type = normalizedType;
+
+        if (string.IsNullOrWhiteSpace(log.Subject))
+        {
+            return BadRequest(new { success = false, message = "La asignatura/materia es requerida." });
+        }
+
+        if (string.IsNullOrWhiteSpace(log.Time))
+        {
+            return BadRequest(new { success = false, message = "La hora del registro es requerida." });
+        }
+
+        if (log.Date == default)
+        {
+            log.Date = DateTime.Today;
+        }
+
+        log.CreatedAt = DateTime.UtcNow;
+
+        context.AttendanceLogs.Add(log);
+        await context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetLogs), new { studentId = log.StudentId }, new { success = true, data = log });
     }
 }

@@ -1,17 +1,97 @@
-<div class="flex w-full h-full items-center justify-center">
-  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-12 min-h-[420px] flex flex-col justify-center">
-    <h2 class="text-3xl font-bold mb-8 text-center">Iniciar sesión</h2>
-    <form (ngSubmit)="login()" autocomplete="off" class="space-y-6">
-      <div>
-        <label class="block text-base font-medium text-gray-700 mb-2">Usuario</label>
-        <input [(ngModel)]="username" name="username" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+<div class="w-full flex items-center justify-center p-4 md:p-6">
+  <!-- TARJETA HORIZONTAL (SPLIT CARD DE DOBLE COLUMNA) -->
+  <div class="relative w-full max-w-4xl bg-white border border-slate-100 shadow-2xl rounded-3xl overflow-hidden flex flex-col md:flex-row transition-all duration-300 hover:shadow-indigo-100/30 animate-fadeIn min-h-[480px]">
+    
+    <!-- LADO IZQUIERDO: Panel Visual e Informativo de Asistencia (Branding) -->
+    <div class="w-full md:w-1/2 bg-gradient-to-br from-[#1e293b] via-[#111827] to-[#0f172a] p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+      <!-- Brillo de color sutil interno -->
+      <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-blue-500/15 rounded-full blur-2xl pointer-events-none"></div>
+      
+      <!-- Brand Logo / Name -->
+      <div class="relative z-10">
+        <div class="inline-flex items-center gap-2.5 mb-6">
+          <div class="w-10 h-10 bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <span class="text-xl font-black tracking-tight bg-clip-text bg-gradient-to-r from-white to-slate-200">TajamarCheck</span>
+        </div>
+        
+        <h3 class="text-2xl md:text-3xl font-black leading-tight mt-8">
+          Controla tus faltas y consulta tus registros diarios
+        </h3>
+        <p class="text-slate-400 text-xs md:text-sm mt-3 leading-relaxed">
+          Accede al portal oficial de asistencia para registrar tus entradas presenciales, revisar tus faltas de asistencia y visualizar tus registros de forma rápida y sencilla.
+        </p>
       </div>
-      <div>
-        <label class="block text-base font-medium text-gray-700 mb-2">Contraseña</label>
-        <input [(ngModel)]="password" name="password" type="password" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+
+      <!-- Feature Badges -->
+      <div class="relative z-10 mt-10 md:mt-0 space-y-3">
+        <div class="flex items-center gap-3 text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 rounded-xl p-3.5 backdrop-blur-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Fichajes interactivos en tiempo real
+        </div>
+        <div class="flex items-center gap-3 text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 rounded-xl p-3.5 backdrop-blur-sm">
+          <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+          Historial completo de faltas y registros
+        </div>
       </div>
-      <button type="submit" [disabled]="loading" class="w-full py-3 px-4 bg-blue-600 text-white text-lg font-semibold rounded hover:bg-blue-700 transition disabled:opacity-50">{{ loading ? 'Entrando...' : 'Entrar' }}</button>
-      <p class="text-red-600 text-center mt-4" *ngIf="error">{{ error }}</p>
-    </form>
+    </div>
+
+    <!-- LADO DERECHO: Formulario de Login -->
+    <div class="w-full md:w-1/2 p-8 md:p-12 bg-white flex flex-col justify-center">
+      <div class="mb-6">
+        <h4 class="text-2xl font-extrabold text-slate-900 tracking-tight">Iniciar sesión</h4>
+        <p class="text-slate-400 text-xs font-semibold mt-1">Identifícate con tus credenciales de la API de Alumnos</p>
+      </div>
+
+      <!-- FORMULARIO -->
+      <form (ngSubmit)="login()" autocomplete="off" class="space-y-5">
+        
+        <!-- Campo Usuario con Icono -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Correo Electrónico</label>
+          <div class="relative flex items-center">
+            <div class="absolute left-4 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <input [(ngModel)]="username" name="username" required 
+                   class="w-full pl-12 pr-4 py-3.5 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition duration-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white text-slate-800 font-medium" 
+                   placeholder="admin@tajamar365.com" />
+          </div>
+        </div>
+        
+        <!-- Campo Contraseña con Icono -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contraseña</label>
+          <div class="relative flex items-center">
+            <div class="absolute left-4 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <input [(ngModel)]="password" name="password" type="password" required 
+                   class="w-full pl-12 pr-4 py-3.5 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition duration-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white text-slate-800 font-medium" 
+                   placeholder="••••••••" />
+          </div>
+        </div>
+
+        <!-- Botón Elegante de Entrada -->
+        <button type="submit" [disabled]="loading" 
+                class="w-full py-4 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-bold rounded-xl transition duration-200 disabled:opacity-50 shadow-lg shadow-blue-200/30 flex items-center justify-center gap-2 cursor-pointer border-0 active:scale-98 mt-2">
+          <span *ngIf="loading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          {{ loading ? 'AUTENTICANDO...' : 'INICIAR SESIÓN' }}
+        </button>
+
+        <!-- Mensaje de Error en Falla -->
+        <div class="text-red-500 text-center text-xs font-bold mt-4 bg-red-50/60 py-3 px-4 rounded-xl border border-red-100 animate-fadeIn" *ngIf="error">
+          ⚠️ {{ error }}
+        </div>
+      </form>
+    </div>
+
   </div>
 </div>

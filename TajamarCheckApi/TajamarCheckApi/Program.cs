@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using TajamarCheckApi.Data;
-using TajamarCheckApi.Middlewares;
-using TajamarCheckApi.Repositories;
-using TajamarCheckApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+// Register the DbContext for SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("AttendanceDb")
@@ -18,16 +17,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-builder.Services.AddTransient<IAttendanceRepository, AttendanceRepository>();
-builder.Services.AddTransient<IAttendanceService, AttendanceService>();
-builder.Services.AddHttpClient<ExternalUserService>(client =>
+// Configure CORS to allow Angular Spa connections
+builder.Services.AddCors(options =>
 {
-    var baseUrl = builder.Configuration["ExternalUsers:BaseUrl"] ?? "https://external-users.example.com/";
-    client.BaseAddress = new Uri(baseUrl);
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -35,7 +38,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseMiddleware<NetworkValidationMiddleware>();
+
+// Enable CORS
+app.UseCors();
 
 app.UseAuthorization();
 
