@@ -12,6 +12,10 @@ namespace TajamarCheckApi.Controllers;
 [Route("api/attendance")]
 public sealed class AttendanceController(ApplicationDbContext context) : ControllerBase
 {
+    // ==========================================
+    // LEGACY ENDPOINTS (Preserved & Extended)
+    // ==========================================
+
     // GET: api/attendance/absences/{studentId}
     [HttpGet("absences/{studentId:int}")]
     public async Task<IActionResult> GetAbsences(int studentId)
@@ -124,4 +128,270 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
 
         return CreatedAtAction(nameof(GetLogs), new { studentId = log.StudentId }, new { success = true, data = log });
     }
+
+    // ==========================================
+    // NEW DAILY ROUNDS ENDPOINTS (Profesores)
+    // ==========================================
+
+    // GET: api/attendance/rondas
+    [HttpGet("rondas")]
+    public async Task<IActionResult> GetRondas()
+    {
+        var rondas = await context.Sesiones
+            .OrderByDescending(s => s.Fecha)
+            .ToListAsync();
+        return Ok(rondas);
+    }
+
+    // GET: api/attendance/ronda-actual
+    [HttpGet("ronda-actual")]
+    public async Task<IActionResult> GetRondaActual()
+    {
+        var today = DateTime.Today;
+        var ronda = await context.Sesiones
+            .FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        
+        return Ok(ronda);
+    }
+
+    // POST: api/attendance/rondas/abrir
+    [HttpPost("rondas/abrir")]
+    public async Task<IActionResult> AbrirRonda([FromBody] RondasRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.TipoClase))
+        {
+            return BadRequest(new { success = false, message = "El tipo de clase es obligatorio." });
+        }
+
+        if (request.TipoClase != "Presencial" && request.TipoClase != "Casa")
+        {
+            return BadRequest(new { success = false, message = "Tipo de clase inválido. Debe ser 'Presencial' o 'Casa'." });
+        }
+
+        var today = DateTime.Today;
+        var existingRonda = await context.Sesiones
+            .FirstOrDefaultAsync(s => s.Fecha.Date == today);
+
+        if (existingRonda != null)
+        {
+            existingRonda.TipoClase = request.TipoClase;
+            existingRonda.CursoId = request.CursoId <= 0 ? 1 : request.CursoId;
+            context.Sesiones.Update(existingRonda);
+            await context.SaveChangesAsync();
+            return Ok(new { success = true, message = $"Ronda de hoy actualizada a '{request.TipoClase}'", data = existingRonda });
+        }
+
+        var nuevaRonda = new Sesion
+        {
+            TipoClase = request.TipoClase,
+            Fecha = today,
+            CursoId = request.CursoId <= 0 ? 1 : request.CursoId
+        };
+
+        context.Sesiones.Add(nuevaRonda);
+        await context.SaveChangesAsync();
+
+        return Created("", new { success = true, message = $"Ronda '{request.TipoClase}' abierta con éxito para hoy.", data = nuevaRonda });
+    }
+
+    // ==========================================
+    // NEW STUDENT CHECK-IN ENDPOINT (Double-Factor)
+    // ==========================================
+
+    // POST: api/attendance/fichar/alumno
+    [HttpPost("fichar/alumno")]
+    public async Task<IActionResult> FicharAlumno([FromBody] FichajeAlumnoRequest request)
+    {
+        if (request == null || request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.Type))
+        {
+            return BadRequest(new { success = false, message = "Los campos studentId y type ('Entrada'/'Salida') son requeridos." });
+        }
+
+        var today = DateTime.Today;
+        var round = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+
+        if (round == null)
+        {
+            return BadRequest(new { success = false, message = "Fichaje denegado: El profesor no ha abierto ninguna ronda de fichaje para el día de hoy." });
+        }
+
+        if (round.TipoClase == "Casa")
+        {
+            return StatusCode(403, new { success = false, message = "El fichaje autónomo está bloqueado para clases desde casa. El profesor registrará la asistencia manualmente." });
+        }
+
+        // Obtener IP del origen
+        var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var clientIp = NormalizeIpAddress(rawIp);
+
+        // Obtener Hostname del header
+        var clientHostname = HttpContext.Request.Headers["X-Client-Hostname"].ToString();
+        if (string.IsNullOrWhiteSpace(clientHostname))
+        {
+            // Para pruebas en entorno local si no hay proxy inyectando la cabecera
+            clientHostname = request.DevHostname ?? "";
+        }
+
+        if (string.IsNullOrWhiteSpace(clientHostname))
+        {
+            return BadRequest(new { success = false, message = "Fichaje denegado: No se pudo determinar el Hostname del dispositivo (Falta cabecera X-Client-Hostname)." });
+        }
+
+        // Validar contra EquiposAutorizados
+        var device = await context.EquiposAutorizados
+            .FirstOrDefaultAsync(d => d.NombreDispositivo.ToLower() == clientHostname.ToLower() && d.Activo);
+
+        if (device == null)
+        {
+            return StatusCode(403, new { success = false, message = $"El dispositivo '{clientHostname}' no está registrado o activo en la lista blanca de equipos." });
+        }
+
+        // Validar IP (permitir coincidencia de IP registrada)
+        var normalizedDeviceIp = NormalizeIpAddress(device.DireccionIP);
+        if (normalizedDeviceIp != clientIp && normalizedDeviceIp != "127.0.0.1" && clientIp != "127.0.0.1")
+        {
+            return StatusCode(403, new { success = false, message = $"Fichaje denegado: La IP origen '{clientIp}' no coincide con la IP registrada para el dispositivo '{clientHostname}' ({device.DireccionIP})." });
+        }
+
+        // Registrar Fichaje
+        var fichaje = new Fichaje
+        {
+            StudentId = request.StudentId,
+            FechaHora = DateTime.UtcNow,
+            EquipoId = device.Id,
+            Metodo = "Automatico_Alumno",
+            IpDetectada = clientIp,
+            HostnameDetectado = clientHostname
+        };
+        context.Fichajes.Add(fichaje);
+
+        // Registrar en AttendanceLogs (Legacy Sync) para que aparezca en estadísticas y calendario del alumno
+        var legacyLog = new AttendanceLog
+        {
+            StudentId = request.StudentId,
+            Type = request.Type, // "Entrada" o "Salida"
+            Subject = "TajamarCheck Presencial",
+            Date = today,
+            Time = DateTime.Now.ToString("HH:mm"),
+            CreatedAt = DateTime.UtcNow,
+            Text = $"Fichaje automático desde {clientHostname} ({clientIp})"
+        };
+        context.AttendanceLogs.Add(legacyLog);
+
+        await context.SaveChangesAsync();
+
+        return Ok(new { 
+            success = true, 
+            message = $"Fichaje de {request.Type} realizado con éxito.", 
+            id = fichaje.Id,
+            ip = clientIp,
+            hostname = clientHostname
+        });
+    }
+
+    // ==========================================
+    // NEW DEVICE WHITELIST CRUD ENDPOINTS
+    // ==========================================
+
+    // GET: api/attendance/equipos
+    [HttpGet("equipos")]
+    public async Task<IActionResult> GetEquipos()
+    {
+        var equipos = await context.EquiposAutorizados
+            .OrderBy(e => e.NombreDispositivo)
+            .ToListAsync();
+        return Ok(equipos);
+    }
+
+    // POST: api/attendance/equipos
+    [HttpPost("equipos")]
+    public async Task<IActionResult> CreateEquipo([FromBody] EquipoAutorizado equipo)
+    {
+        if (equipo == null || string.IsNullOrWhiteSpace(equipo.NombreDispositivo) || string.IsNullOrWhiteSpace(equipo.DireccionIP))
+        {
+            return BadRequest(new { success = false, message = "El nombre de dispositivo y la dirección IP son requeridos." });
+        }
+
+        var existe = await context.EquiposAutorizados
+            .AnyAsync(e => e.NombreDispositivo.ToLower() == equipo.NombreDispositivo.ToLower());
+        if (existe)
+        {
+            return BadRequest(new { success = false, message = "Ya existe un dispositivo registrado con este nombre." });
+        }
+
+        context.EquiposAutorizados.Add(equipo);
+        await context.SaveChangesAsync();
+        return Created("", equipo);
+    }
+
+    // PUT: api/attendance/equipos/{id}
+    [HttpPut("equipos/{id:guid}")]
+    public async Task<IActionResult> UpdateEquipo(Guid id, [FromBody] EquipoAutorizado equipo)
+    {
+        if (equipo == null || id != equipo.Id)
+        {
+            return BadRequest(new { success = false, message = "Datos de dispositivo no válidos." });
+        }
+
+        var dbEquipo = await context.EquiposAutorizados.FindAsync(id);
+        if (dbEquipo == null)
+        {
+            return NotFound(new { success = false, message = "Dispositivo no encontrado." });
+        }
+
+        dbEquipo.NombreDispositivo = equipo.NombreDispositivo;
+        dbEquipo.DireccionIP = equipo.DireccionIP;
+        dbEquipo.Activo = equipo.Activo;
+
+        context.EquiposAutorizados.Update(dbEquipo);
+        await context.SaveChangesAsync();
+        return Ok(dbEquipo);
+    }
+
+    // DELETE: api/attendance/equipos/{id}
+    [HttpDelete("equipos/{id:guid}")]
+    public async Task<IActionResult> DeleteEquipo(Guid id)
+    {
+        var dbEquipo = await context.EquiposAutorizados.FindAsync(id);
+        if (dbEquipo == null)
+        {
+            return NotFound(new { success = false, message = "Dispositivo no encontrado." });
+        }
+
+        context.EquiposAutorizados.Remove(dbEquipo);
+        await context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ==========================================
+    // UTILITIES
+    // ==========================================
+
+    private string NormalizeIpAddress(string ip)
+    {
+        if (ip == "::1") return "127.0.0.1";
+        // Si tiene puerto o es IPv6 mapeada, extraer IPv4
+        if (ip.Contains("::ffff:"))
+        {
+            return ip.Replace("::ffff:", "");
+        }
+        return ip;
+    }
+}
+
+// ==========================================
+// REQUEST DTOs
+// ==========================================
+
+public sealed class RondasRequest
+{
+    public string TipoClase { get; set; } = string.Empty; // "Presencial" o "Casa"
+    public int CursoId { get; set; } = 1;
+}
+
+public sealed class FichajeAlumnoRequest
+{
+    public int StudentId { get; set; }
+    public string Type { get; set; } = string.Empty; // "Entrada" o "Salida"
+    public string? DevHostname { get; set; } // Opcional para pruebas locales
 }

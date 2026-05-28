@@ -23,3 +23,28 @@ CREATE TABLE AttendanceLogs (
     Text NVARCHAR(250) NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
+
+CREATE TABLE EquiposAutorizados (
+    Id UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
+    NombreDispositivo NVARCHAR(150) NOT NULL UNIQUE,
+    DireccionIP NVARCHAR(50) NOT NULL,
+    Activo BIT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE Sesiones (
+    Id UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
+    TipoClase NVARCHAR(50) NOT NULL CHECK (TipoClase IN ('Presencial', 'Casa')),
+    Fecha DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CursoId INT NOT NULL
+);
+
+CREATE TABLE Fichajes (
+    Id UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
+    StudentId INT NOT NULL,
+    FechaHora DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    EquipoId UNIQUEIDENTIFIER NULL,
+    Metodo NVARCHAR(50) NOT NULL CHECK (Metodo IN ('Automatico_Alumno', 'Manual_Profesor')),
+    IpDetectada NVARCHAR(50) NOT NULL,
+    HostnameDetectado NVARCHAR(150) NOT NULL,
+    CONSTRAINT FK_Fichajes_Equipos FOREIGN KEY (EquipoId) REFERENCES EquiposAutorizados(Id)
+);

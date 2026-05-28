@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-login',
@@ -17,13 +18,15 @@ export class LoginComponent implements OnInit {
   error = '';
   loading = false;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient, 
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   ngOnInit() {
     console.log('LoginComponent: Iniciando componente...');
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('username');
-    if (token && savedUser) {
+    if (this.authService.isLoggedIn()) {
       console.log('LoginComponent: Sesión activa encontrada. Redirigiendo a home...');
       this.router.navigate(['/home']);
     }
@@ -63,8 +66,8 @@ export class LoginComponent implements OnInit {
           }
 
           if (token) {
-            localStorage.setItem('token', token);
-            localStorage.setItem('username', this.username);
+            // Guardar sesión usando el AuthService (maneja el rol dinámico)
+            this.authService.saveSession(token, this.username);
             console.log('LoginComponent: Sesión guardada con éxito. Navegando a Home...');
             this.router.navigate(['/home']);
           } else {
@@ -75,7 +78,6 @@ export class LoginComponent implements OnInit {
         error: (err) => {
           console.error('LoginComponent: Error en la petición HTTP:', err);
           this.loading = false;
-          // Mostrar mensaje de error explícito requerido por el usuario
           this.error = 'Usuario o contraseña incorrectos.';
         }
       });

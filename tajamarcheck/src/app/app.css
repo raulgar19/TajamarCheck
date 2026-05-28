@@ -1,0 +1,243 @@
+/* ========================================================
+   TAJAMARCHECK - MIDNIGHT OBSIDIAN PREMIUM STYLE SYSTEM (V3)
+   A luxurious, high-end dark glassmorphism system (Linear/Vercel style)
+   ======================================================== */
+
+:root {
+  /* Premium Dark HSL Color Palette */
+  --primary-base: 245, 75%, 60%;      /* Iris Purple */
+  --secondary-base: 180, 70%, 45%;    /* Mystic Teal */
+  --accent-base: 142, 70%, 45%;       /* Emerald Check */
+  --danger-base: 350, 80%, 55%;       /* Ruby Absence */
+  --warning-base: 38, 90%, 55%;       /* Amber Delay */
+  
+  --bg-obsidian-deep: 224, 25%, 4%;   /* Obsidian deep black (#030508) */
+  --bg-obsidian-card: 222, 22%, 10%;  /* Premium Dark Card (#0f131a) */
+  
+  /* Advanced Glassmorphism (Enhanced Contrast) */
+  --glass-bg: rgba(17, 25, 40, 0.85);  /* Slightly lighter and more opaque */
+  --glass-border: rgba(255, 255, 255, 0.12); /* Brighter, more defined outline */
+  --glass-border-glow: rgba(99, 102, 241, 0.4); /* Stronger glow active states */
+  --glass-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+}
+
+/* GLOBAL STYLES */
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: #030508; /* Deeper black backdrop for maximum contrast */
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 40%);
+  color: #f1f5f9;
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+  overflow-x: hidden;
+}
+
+/* REACTIVE MOUSE GLOW EFFECT (Subtle & Dynamic) */
+.mouse-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.14) 0%, rgba(139, 92, 246, 0.05) 35%, transparent 70%);
+  transform: translate(calc(var(--mouse-x, -999px) - 300px), calc(var(--mouse-y, -999px) - 300px));
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: transform 0.18s cubic-bezier(0.1, 0.8, 0.25, 1);
+  will-change: transform;
+}
+
+
+/* TYPOGRAPHY */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+/* PREMIUM SCROLLBARS */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* HIGH-END GLASSMORPHISM CARD */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 24px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.65), 0 0 40px -10px rgba(99, 102, 241, 0.12);
+}
+
+/* NEON CARD ACCENTS */
+.card-accent-emerald {
+  border-left: 3px solid #10b981 !important;
+}
+.card-accent-ruby {
+  border-left: 3px solid #f43f5e !important;
+}
+.card-accent-amber {
+  border-left: 3px solid #f59e0b !important;
+}
+
+/* DYNAMIC HOVER EFFECTS FOR BUTTONS */
+.btn-interactive {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.btn-interactive::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transform: translateX(-100%);
+  transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-interactive:hover::after {
+  transform: translateX(100%);
+}
+
+.btn-interactive:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 12px 25px -5px rgba(99, 102, 241, 0.3);
+}
+
+.btn-interactive:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* INPUTS REDESIGN */
+input, select, textarea {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  backdrop-filter: blur(8px);
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2) !important;
+  outline: none !important;
+}
+
+/* PREMIUM CALENDAR DESIGN */
+.calendar-grid-tile {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-grid-tile:hover {
+  transform: scale(1.12);
+  z-index: 10;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* TEXT GRADIENTS */
+.text-glow-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* MODAL CONTAINER ANIMATIONS */
+@keyframes modalFadeIn {
+  from {
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    background-color: rgba(5, 8, 15, 0.75);
+    backdrop-filter: blur(12px);
+  }
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-bg {
+  animation: modalFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-card {
+  animation: modalScaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* RICH MICRO-ANIMATIONS */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

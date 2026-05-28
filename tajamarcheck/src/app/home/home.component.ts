@@ -1,103 +1,391 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../auth/auth.service';
+import { StudentService } from './student.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
 export class HomeComponent implements OnInit {
   username = '';
-  token = '';
-  showToken = false;
+  role: 'alumno' | 'profesor' = 'alumno';
+  studentId = 101;
+  loading = false;
+
+  // ==========================================
+  // ESTUDIANTE STATE
+  // ==========================================
+  attendancePercentage = 100;
+  absencesCount = 0;
+  delaysCount = 0;
   
-  // Estadísticas simplificadas: Asistencia, Faltas y Retrasos
-  attendancePercentage = 96.4;
-  absencesCount = 3;
-  delaysCount = 2;
-
-  // Lista simplificada de faltas
-  absences = [
-    { id: 1, subject: 'Matemáticas Aplicadas', date: '25 May, 2026', time: '09:00 - 10:00' },
-    { id: 2, subject: 'Programación .NET Core', date: '20 May, 2026', time: '11:30 - 13:30' },
-    { id: 3, subject: 'Programación .NET Core', date: '18 May, 2026', time: '08:30 - 10:30' }
-  ];
-
-  // Lista de retrasos
-  delays = [
-    { id: 101, subject: 'Programación .NET Core', date: '12 May, 2026', time: '11:45', minutes: 15, text: '15 min de retraso' },
-    { id: 102, subject: 'Matemáticas Aplicadas', date: '14 May, 2026', time: '09:10', minutes: 10, text: '10 min de retraso' }
-  ];
-
-  // Historial de registros (fichajes de entrada/salida y retrasos)
-  attendanceLogs = [
-    { id: 201, type: 'Entrada', subject: 'Programación .NET Core', date: '26 May, 2026', time: '08:28', badgeColor: 'bg-emerald-50 border-emerald-150 text-emerald-700', icon: 'E', text: 'Entrada registrada' },
-    { id: 202, type: 'Salida', subject: 'Programación .NET Core', date: '26 May, 2026', time: '14:30', badgeColor: 'bg-slate-50 border-slate-200 text-slate-600', icon: 'S', text: 'Salida registrada' },
-    { id: 203, type: 'Entrada', subject: 'Matemáticas Aplicadas', date: '25 May, 2026', time: '08:55', badgeColor: 'bg-emerald-50 border-emerald-150 text-emerald-700', icon: 'E', text: 'Entrada registrada' },
-    { id: 204, type: 'Salida', subject: 'Matemáticas Aplicadas', date: '25 May, 2026', time: '12:05', badgeColor: 'bg-slate-50 border-slate-200 text-slate-600', icon: 'S', text: 'Salida registrada' },
-    { id: 102, type: 'Retraso', subject: 'Matemáticas Aplicadas', date: '14 May, 2026', time: '09:10', badgeColor: 'bg-violet-50 border-violet-150 text-violet-700', icon: 'R', text: '10 min de retraso' },
-    { id: 101, type: 'Retraso', subject: 'Programación .NET Core', date: '12 May, 2026', time: '11:45', badgeColor: 'bg-violet-50 border-violet-150 text-violet-700', icon: 'R', text: '15 min de retraso' }
-  ];
-
-  // Calendario
+  absences: any[] = [];
+  delays: any[] = [];
+  attendanceLogs: any[] = [];
+  
+  // Navigation for Multi-Month Calendar
+  currentCalendarDate = new Date();
   calendarDays: any[] = [];
+  monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
 
-  constructor(private router: Router) {}
+  // ==========================================
+  // PROFESOR STATE
+  // ==========================================
+  rondaActual: any = null;
+  rondaTipo = 'Presencial'; // Default
+  rondasHistorial: any[] = [];
+  
+  // CRUD de Equipos
+  equipos: any[] = [];
+  mostrarModalEquipo = false;
+  editingEquipo: any = null;
+  equipoForm = {
+    id: '',
+    nombreDispositivo: '',
+    direccionIP: '127.0.0.1',
+    activo: true
+  };
+
+  // Pase de Lista Manual
+  estudiantesList = [
+    { id: 1, name: 'Raúl García' },
+    { id: 2, name: 'Sofia Martín' },
+    { id: 3, name: 'Carlos Gomez' },
+    { id: 4, name: 'Ana Belén Ortiz' },
+    { id: 101, name: 'Estudiante Tajamar (Pruebas)' }
+  ];
+  mostrarModalManual = false;
+  manualForm = {
+    studentId: 1,
+    type: 'Falta', // 'Falta' o 'Retraso'
+    subject: 'Matemáticas Aplicadas',
+    time: '09:00',
+    date: new Date().toISOString().split('T')[0],
+    minutes: 15,
+    text: ''
+  };
+
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+    private authService: AuthService,
+    private studentService: StudentService
+  ) {}
 
   ngOnInit() {
-    // Comprobar si el usuario está autenticado
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('username');
-
-    if (!savedToken || !savedUser) {
-      console.warn('HomeComponent: Acceso no autorizado. Redirigiendo a login.');
+    if (!this.authService.isLoggedIn()) {
+      console.warn('HomeComponent: Sesión inactiva. Redirigiendo a login.');
       this.router.navigate(['/login']);
-    } else {
-      this.token = savedToken;
-      this.username = savedUser;
-      console.log('HomeComponent: Sesión autorizada para:', this.username);
-      this.generateCalendar();
+      return;
     }
+
+    this.username = this.authService.getUsername();
+    this.role = this.authService.getRole();
+    this.studentId = this.authService.getStudentId();
+
+    console.log(`HomeComponent: Sesión iniciada para ${this.username}. Rol: ${this.role}`);
+
+    if (this.role === 'alumno') {
+      this.loadStudentData();
+    } else {
+      this.loadTeacherData();
+    }
+  }
+
+  // ==========================================
+  // ALUMNO LOGIC
+  // ==========================================
+  loadStudentData() {
+    this.loading = true;
+    
+    // Cargar faltas
+    this.studentService.getAbsences(this.studentId).subscribe({
+      next: (abs) => {
+        this.absences = abs;
+        this.absencesCount = abs.length;
+        this.recalculatePercentage();
+        this.generateCalendar();
+      },
+      error: (err) => console.error('Error al cargar faltas:', err)
+    });
+
+    // Cargar registros e incidentes
+    this.studentService.getLogs(this.studentId).subscribe({
+      next: (logs) => {
+        this.attendanceLogs = logs;
+        
+        // Extraer retrasos
+        this.delays = logs.filter(l => l.type.toLowerCase() === 'retraso');
+        this.delaysCount = this.delays.length;
+        this.recalculatePercentage();
+        this.generateCalendar();
+      },
+      error: (err) => console.error('Error al cargar registros:', err),
+      complete: () => { this.loading = false; }
+    });
+  }
+
+  recalculatePercentage() {
+    const totalDays = 60; // Simulación de total de días cursados
+    const missed = this.absencesCount + (this.delaysCount * 0.25); // Los retrasos descuentan un cuarto de falta
+    const pct = ((totalDays - missed) / totalDays) * 100;
+    this.attendancePercentage = parseFloat(Math.max(0, Math.min(100, pct)).toFixed(1));
   }
 
   generateCalendar() {
-    const days = [];
-    // Mayo 2026 empieza en Viernes (4 espacios vacíos para L, M, X, J)
-    for (let i = 0; i < 4; i++) {
+    const year = this.currentCalendarDate.getFullYear();
+    const month = this.currentCalendarDate.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // Día de la semana en que inicia
+    // Ajustar para que Lunes sea el primer día de la semana (0: Lunes, 6: Domingo)
+    const adjustedStart = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days: any[] = [];
+    
+    // Rellenar días vacíos antes del inicio del mes
+    for (let i = 0; i < adjustedStart; i++) {
       days.push({ dayNumber: null, status: 'empty' });
     }
-    
-    for (let d = 1; d <= 31; d++) {
-      const absence = this.absences.find(a => a.date.startsWith(`${d} May`));
-      const delay = this.delays.find(de => de.date.startsWith(`${d} May`));
+
+    // Rellenar días del mes
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const cellDate = new Date(year, month, d);
       
+      // Buscar falta en este día
+      const hasAbsence = this.absences.some(a => {
+        const dDate = new Date(a.date);
+        return dDate.getDate() === d && dDate.getMonth() === month && dDate.getFullYear() === year;
+      });
+
+      // Buscar retraso en este día
+      const hasDelay = this.delays.some(de => {
+        const deDate = new Date(de.date);
+        return deDate.getDate() === d && deDate.getMonth() === month && deDate.getFullYear() === year;
+      });
+
       let status = 'present';
-      let subject = null;
-      
-      if (absence) {
+      if (hasAbsence) {
         status = 'absence';
-        subject = absence.subject;
-      } else if (delay) {
+      } else if (hasDelay) {
         status = 'delay';
-        subject = `${delay.subject} (${delay.text})`;
       }
-      
+
       days.push({
         dayNumber: d,
-        status: status,
-        absenceSubject: subject
+        status: status
       });
     }
+
     this.calendarDays = days;
   }
 
+  prevMonth() {
+    this.currentCalendarDate = new Date(
+      this.currentCalendarDate.getFullYear(),
+      this.currentCalendarDate.getMonth() - 1,
+      1
+    );
+    this.generateCalendar();
+  }
+
+  nextMonth() {
+    this.currentCalendarDate = new Date(
+      this.currentCalendarDate.getFullYear(),
+      this.currentCalendarDate.getMonth() + 1,
+      1
+    );
+    this.generateCalendar();
+  }
+
+  // ==========================================
+  // PROFESOR LOGIC
+  // ==========================================
+  loadTeacherData() {
+    this.loading = true;
+
+    // Cargar ronda actual de hoy
+    this.http.get<any>('/api/attendance/ronda-actual').subscribe({
+      next: (ronda) => {
+        this.rondaActual = ronda;
+        if (ronda) {
+          this.rondaTipo = ronda.tipoClase;
+        }
+      },
+      error: (err) => console.error('Error al cargar ronda actual:', err)
+    });
+
+    // Cargar historial de rondas
+    this.http.get<any[]>('/api/attendance/rondas').subscribe({
+      next: (hist) => {
+        this.rondasHistorial = hist;
+      },
+      error: (err) => console.error('Error al cargar historial de rondas:', err)
+    });
+
+    // Cargar lista de equipos
+    this.loadEquipos();
+  }
+
+  loadEquipos() {
+    this.http.get<any[]>('/api/attendance/equipos').subscribe({
+      next: (eqs) => {
+        this.equipos = eqs;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error al cargar equipos:', err);
+        this.loading = false;
+      }
+    });
+  }
+
+  abrirRonda() {
+    this.http.post<any>('/api/attendance/rondas/abrir', {
+      tipoClase: this.rondaTipo,
+      cursoId: 1
+    }).subscribe({
+      next: (res) => {
+        console.log('Ronda abierta/actualizada con éxito:', res);
+        this.rondaActual = res.data;
+        this.loadTeacherData(); // Recargar historial
+      },
+      error: (err) => {
+        console.error('Error al abrir ronda:', err);
+        alert('Error al abrir ronda: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  // ==========================================
+  // CRUD EQUIPOS (WHITELIST)
+  // ==========================================
+  nuevoEquipo() {
+    this.editingEquipo = null;
+    this.equipoForm = {
+      id: '',
+      nombreDispositivo: '',
+      direccionIP: '127.0.0.1',
+      activo: true
+    };
+    this.mostrarModalEquipo = true;
+  }
+
+  editarEquipo(eq: any) {
+    this.editingEquipo = eq;
+    this.equipoForm = {
+      id: eq.id,
+      nombreDispositivo: eq.nombreDispositivo,
+      direccionIP: eq.direccionIP,
+      activo: eq.activo
+    };
+    this.mostrarModalEquipo = true;
+  }
+
+  guardarEquipo() {
+    if (!this.equipoForm.nombreDispositivo.trim() || !this.equipoForm.direccionIP.trim()) {
+      alert('Todos los campos son obligatorios.');
+      return;
+    }
+
+    if (this.editingEquipo) {
+      // Modificar
+      this.http.put<any>(`/api/attendance/equipos/${this.equipoForm.id}`, this.equipoForm).subscribe({
+        next: () => {
+          this.mostrarModalEquipo = false;
+          this.loadEquipos();
+        },
+        error: (err) => alert('Error al editar equipo: ' + (err.error?.message || err.message))
+      });
+    } else {
+      // Crear
+      const { id, ...nuevo } = this.equipoForm;
+      this.http.post<any>('/api/attendance/equipos', nuevo).subscribe({
+        next: () => {
+          this.mostrarModalEquipo = false;
+          this.loadEquipos();
+        },
+        error: (err) => alert('Error al registrar equipo: ' + (err.error?.message || err.message))
+      });
+    }
+  }
+
+  eliminarEquipo(id: string) {
+    if (confirm('¿Estás seguro de eliminar este dispositivo de la lista blanca?')) {
+      this.http.delete(`/api/attendance/equipos/${id}`).subscribe({
+        next: () => this.loadEquipos(),
+        error: (err) => alert('Error al eliminar equipo: ' + err.message)
+      });
+    }
+  }
+
+  // ==========================================
+  // REGISTRO MANUAL DE ASISTENCIA (ROLL CALL)
+  // ==========================================
+  nuevoRegistroManual() {
+    this.manualForm = {
+      studentId: this.estudiantesList[0].id,
+      type: 'Falta',
+      subject: 'Programación .NET Core',
+      time: '08:30',
+      date: new Date().toISOString().split('T')[0],
+      minutes: 15,
+      text: 'Pase de lista manual'
+    };
+    this.mostrarModalManual = true;
+  }
+
+  guardarRegistroManual() {
+    if (this.manualForm.type === 'Falta') {
+      const payload = {
+        studentId: this.manualForm.studentId,
+        subject: this.manualForm.subject,
+        date: new Date(this.manualForm.date),
+        time: this.manualForm.time
+      };
+      this.http.post('/api/attendance/absence', payload).subscribe({
+        next: () => {
+          this.mostrarModalManual = false;
+          alert('Falta registrada con éxito.');
+        },
+        error: (err) => alert('Error al registrar falta: ' + err.message)
+      });
+    } else {
+      const payload = {
+        studentId: this.manualForm.studentId,
+        type: 'Retraso',
+        subject: this.manualForm.subject,
+        date: new Date(this.manualForm.date),
+        time: this.manualForm.time,
+        minutes: this.manualForm.minutes,
+        text: `${this.manualForm.minutes} min de retraso. ${this.manualForm.text}`
+      };
+      this.http.post('/api/attendance/log', payload).subscribe({
+        next: () => {
+          this.mostrarModalManual = false;
+          alert('Retraso registrado con éxito.');
+        },
+        error: (err) => alert('Error al registrar retraso: ' + err.message)
+      });
+    }
+  }
+
+  // ==========================================
+  // GENERAL
+  // ==========================================
   logout() {
-    console.log('HomeComponent: Cerrando sesión y limpiando datos...');
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 }

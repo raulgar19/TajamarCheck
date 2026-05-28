@@ -7,6 +7,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Absence> Absences { get; set; } = null!;
     public DbSet<AttendanceLog> AttendanceLogs { get; set; } = null!;
+    public DbSet<EquipoAutorizado> EquiposAutorizados { get; set; } = null!;
+    public DbSet<Sesion> Sesiones { get; set; } = null!;
+    public DbSet<Fichaje> Fichajes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

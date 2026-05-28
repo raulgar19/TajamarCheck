@@ -1,0 +1,90 @@
+<header class="bg-[#07090e]/60 backdrop-blur-xl border-b border-white/5 text-white py-4 px-6 md:px-8 flex items-center justify-between shadow-2xl sticky top-0 z-50 animate-fadeIn">
+  
+  <!-- BRAND / LOGO (Enlace a Home si está logueado, sino estático) -->
+  <a [routerLink]="authService.isLoggedIn() ? '/home' : '/login'" class="flex items-center gap-3 select-none decoration-none cursor-pointer">
+    <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-white/10">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 text-white animate-pulse">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-base md:text-xl font-black tracking-tight leading-none text-glow-gradient">TajamarCheck</h1>
+      <span class="text-[9px] md:text-[10px] font-bold text-indigo-300 uppercase tracking-widest mt-0.5 block">Portal de Asistencia</span>
+    </div>
+  </a>
+
+  <!-- CONTROLES Y PERFIL DEL CABECERO (Solo si está logueado) -->
+  <div class="flex items-center gap-3" *ngIf="authService.isLoggedIn()">
+    
+    <!-- Botón Rápido de Inicio (Visible si está en Fichar o Perfil) -->
+    <a *ngIf="isFicharPage() || isProfilePage()" 
+       routerLink="/home" 
+       class="hidden sm:inline-flex items-center px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs font-bold rounded-xl transition decoration-none active:scale-95 hover:shadow-lg hover:shadow-indigo-500/5">
+      Inicio
+    </a>
+
+    <!-- Botón Rápido de Fichaje Autónomo (Visible para estudiantes en el Home) -->
+    <a *ngIf="authService.getRole() === 'alumno' && !isFicharPage()" 
+       routerLink="/fichar" 
+       class="hidden sm:inline-flex items-center px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs font-bold rounded-xl transition decoration-none active:scale-95 hover:shadow-lg hover:shadow-indigo-500/5">
+      Fichar
+    </a>
+
+    <!-- CONTENEDOR DEL MENÚ DESPLEGABLE DE PERFIL -->
+    <div class="relative profile-dropdown-container">
+      
+      <!-- Botón Desplegable -->
+      <button (click)="toggleDropdown($event)" 
+              class="flex items-center gap-2.5 pl-2.5 pr-3.5 py-1.5 bg-white/5 hover:bg-white/10 active:scale-95 transition border border-white/10 rounded-2xl cursor-pointer select-none">
+        
+        <!-- Círculo de Iniciales de Usuario con Efecto Glowing -->
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 via-violet-600 to-pink-500 flex items-center justify-center font-black text-xs text-white shadow-md border border-white/10 uppercase">
+          {{ username ? username.substring(0, 2) : 'TC' }}
+        </div>
+        
+        <!-- Nombre y Rol (Solo Desktop) -->
+        <div class="hidden md:flex flex-col text-left">
+          <span class="text-xs font-bold text-slate-200 leading-none truncate max-w-[100px]">{{ username }}</span>
+          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5">{{ authService.getRole() }}</span>
+        </div>
+        
+        <!-- Chevron Animado -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" 
+             class="w-3.5 h-3.5 text-slate-450 transition duration-300 transform" [ngClass]="{'rotate-180': isDropdownOpen}">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      <!-- MENÚ DESPLEGABLE GLASSMORPHIC (Obsidian Theme) -->
+      <div *ngIf="isDropdownOpen" 
+           class="absolute right-0 mt-2.5 w-52 bg-slate-900/95 border border-white/10 shadow-2xl rounded-2xl p-2 backdrop-blur-xl animate-fadeIn z-50 flex flex-col space-y-1">
+        
+        <!-- Cabecera del Dropdown -->
+        <div class="px-3 py-2 border-b border-white/5 mb-1.5 text-left select-none">
+          <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest block">Sesión Activa</span>
+          <h4 class="text-xs font-black text-white truncate leading-tight mt-1">{{ username }}</h4>
+          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5 block">Rol: {{ authService.getRole() }}</span>
+        </div>
+
+        <!-- Opción: Mi Perfil -->
+        <a routerLink="/perfil" (click)="closeDropdown()" 
+           class="flex items-center px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition decoration-none cursor-pointer">
+          <span>Mi Perfil</span>
+        </a>
+
+        <!-- Separación y Logout -->
+        <div class="border-t border-white/5 my-1"></div>
+        
+        <button (click)="logout()" 
+                class="w-full text-left flex items-center px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-red-500/10 transition border-0 bg-transparent cursor-pointer">
+          <span>Cerrar Sesión</span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+</header>
+
+

@@ -1,0 +1,72 @@
+<main class="w-full max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn select-none">
+  
+
+  <!-- HORIZONTAL CREDENTIAL CARD (WIDESCREEN & PREMIUM GLOWS) -->
+  <div class="max-w-6xl w-full mx-auto glass-card-profile p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center md:items-stretch gap-10 md:gap-14">
+    <!-- Glow details for high aesthetic quality -->
+    <div class="absolute -right-32 -top-32 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+    <div class="absolute -left-32 -bottom-32 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+
+    <!-- Part 1: Avatar, Role & Status (Left Column - Larger & Prominent) -->
+    <div class="shrink-0 flex flex-col items-center justify-center gap-6 select-none pr-0 md:pr-6 border-b md:border-b-0 pb-6 md:pb-0">
+      <div class="relative">
+        <div class="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500 via-violet-600 to-emerald-500 opacity-30 blur-md animate-pulse"></div>
+        <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Avatar" 
+             class="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl object-cover border border-white/10 shadow-2xl pointer-events-none" />
+        <div *ngIf="!avatarUrl" class="relative w-32 h-32 md:w-36 md:h-36 bg-gradient-to-tr from-indigo-500 via-violet-600 to-pink-500 rounded-3xl flex items-center justify-center text-4xl md:text-5xl font-black text-white border border-white/10 uppercase">
+          {{ fullName ? fullName.substring(0, 2) : 'TC' }}
+        </div>
+      </div>
+      
+      <!-- Badges vertically stacked under avatar -->
+      <div class="flex flex-col items-center gap-2.5">
+        <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase border bg-indigo-500/10 text-indigo-400 border-indigo-500/25 shadow-sm">
+          {{ role === 'profesor' ? '📚 Profesor' : '💻 Alumno' }}
+        </span>
+        <!-- Active Status Badge -->
+        <span *ngIf="isActive" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/35 shadow-md shadow-emerald-500/10 text-[10px] md:text-xs font-black tracking-wider uppercase select-none">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Activa
+        </span>
+        <!-- Inactive Status Badge -->
+        <span *ngIf="!isActive" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-rose-500/20 text-rose-300 rounded-full border border-rose-500/35 shadow-md shadow-rose-500/10 text-[10px] md:text-xs font-black tracking-wider uppercase select-none">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-450 animate-pulse"></span>
+          Inactiva
+        </span>
+      </div>
+    </div>
+
+    <!-- Part 2: Long Form Fields (Right Column - Larger & Expansive) -->
+    <div class="flex-1 w-full flex flex-col justify-center gap-6 border-t md:border-t-0 md:border-l border-white/5 pt-8 md:pt-0 md:pl-12">
+      
+      <!-- Field 1: Nombre y Apellidos -->
+      <div class="flex flex-col gap-2 w-full">
+        <label class="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest block pl-1.5 select-none">Nombre y Apellidos</label>
+        <div class="profile-input-long cursor-default select-text min-h-[58px] flex items-center whitespace-normal break-words leading-relaxed text-slate-100 font-bold">
+          {{ fullName }}
+        </div>
+      </div>
+
+      <!-- Field 2: Correo Electrónico -->
+      <div class="flex flex-col gap-2 w-full">
+        <label class="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest block pl-1.5 select-none">Correo Electrónico</label>
+        <div class="profile-input-long cursor-default select-text min-h-[58px] flex items-center whitespace-normal break-all leading-relaxed text-slate-100 font-bold">
+          {{ email }}
+        </div>
+      </div>
+
+      <!-- Field 3: Curso Académico -->
+      <div class="flex flex-col gap-2 w-full">
+        <label class="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest block pl-1.5 select-none">Curso Académico</label>
+        <div class="profile-input-long cursor-default select-text min-h-[58px] flex items-center whitespace-normal break-words leading-relaxed text-slate-100 font-bold">
+          {{ course }}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+

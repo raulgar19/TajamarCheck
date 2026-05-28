@@ -1,0 +1,83 @@
+
+<main class="w-full max-w-2xl mx-auto p-4 md:p-12 animate-fadeIn select-none">
+  
+  <div class="glass-card p-6 md:p-8 flex flex-col items-center text-center space-y-6">
+    <!-- Brillo interno sutil -->
+    <div class="absolute -top-16 -left-16 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+    <div class="space-y-2 relative z-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-[10px] font-bold text-emerald-450 shadow-md">
+        💻 PANEL DE FICHAJE AUTÓNOMO
+      </div>
+      <h2 class="text-2xl font-black text-white leading-tight">Registra tu Entrada y Salida</h2>
+      <p class="text-xs text-slate-400 font-semibold max-w-sm">
+        Haz clic en el botón correspondiente para registrar tu asistencia diaria. El sistema validará tu IP y el Hostname de tu PC automáticamente.
+      </p>
+    </div>
+
+    <!-- ESTADO DE LA RONDA DEL DÍA -->
+    <div class="w-full bg-white/5 border border-white/5 p-4 rounded-2xl flex items-center justify-between text-left relative z-10 shadow-inner">
+      <div>
+        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Ronda de hoy</span>
+        <span class="text-xs font-black text-slate-200 mt-1 block">
+          {{ rondaActual ? (rondaActual.tipoClase === 'Presencial' ? '💻 Presencial (Clase Aula)' : '🏠 Desde Casa') : '🔒 No Habilitada / Cerrada' }}
+        </span>
+      </div>
+      <span class="text-[9px] font-black px-2.5 py-1.5 rounded-lg border whitespace-nowrap select-none"
+            [ngClass]="rondaActual ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-md shadow-emerald-500/5' : 'bg-rose-500/10 text-rose-450 border-rose-500/20'">
+        {{ rondaActual ? 'ABIERTA' : 'CERRADA' }}
+      </span>
+    </div>
+
+    <!-- BOTONES DE FICHAJE PRINCIPALES -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-4 relative z-10">
+      
+      <!-- Entrada -->
+      <button (click)="fichar('Entrada')" [disabled]="loading || !rondaActual || rondaActual.tipoClase === 'Casa'"
+              class="py-6 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-40 text-white font-black text-sm rounded-2xl border-0 cursor-pointer shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 active:scale-95 transition duration-200 btn-interactive">
+        <span class="text-2xl select-none">📥</span>
+        <span>FICHAR ENTRADA</span>
+      </button>
+
+      <!-- Salida -->
+      <button (click)="fichar('Salida')" [disabled]="loading || !rondaActual || rondaActual.tipoClase === 'Casa'"
+              class="py-6 px-6 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-40 text-white font-black text-sm rounded-2xl border-0 cursor-pointer shadow-lg shadow-indigo-500/20 flex flex-col items-center justify-center gap-2 active:scale-95 transition duration-200 btn-interactive">
+        <span class="text-2xl select-none">📤</span>
+        <span>FICHAR SALIDA</span>
+      </button>
+
+    </div>
+
+    <!-- ALERTA DE FEEDBACK DE FICHAJE -->
+    <div class="w-full text-xs font-bold p-4 rounded-2xl animate-fadeIn border relative z-10 shadow-lg"
+         *ngIf="checkinStatus !== 'idle'"
+         [ngClass]="{
+           'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': checkinStatus === 'success',
+           'bg-rose-500/10 border-rose-500/20 text-rose-450': checkinStatus === 'error'
+         }">
+      <span class="text-base mr-1.5 select-none">{{ checkinStatus === 'success' ? '✓' : '⚠️' }}</span>
+      {{ statusMessage }}
+    </div>
+
+    <!-- SECCIÓN DE PRUEBAS DE HOSTNAME PARA EL DESARROLLADOR / EVALUADOR -->
+    <div class="w-full border-t border-white/5 pt-6 mt-4 text-left relative z-10">
+      <div class="bg-slate-950/60 border border-white/5 p-5 rounded-2xl space-y-3 shadow-inner">
+        <div class="flex items-center gap-2 text-indigo-400 font-mono text-xs font-bold">
+          <span>🛠️</span>
+          <span>Entorno de Pruebas (Simulación)</span>
+        </div>
+        <p class="text-[10px] text-slate-450 font-semibold leading-relaxed">
+          Dado que estás ejecutando el entorno en desarrollo local y las IPs y cabeceras reales no están inyectadas por proxy inverso, puedes **simular diferentes nombres de Host de PC** para validar las reglas de la base de datos de Equipos Autorizados.
+        </p>
+        <div>
+          <label class="block text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Hostname del PC del Aula a Simular</label>
+          <input [(ngModel)]="devHostname" name="devHostname" placeholder="Ej: AULA-LOCAL-PC"
+                 class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[11px] font-mono text-emerald-450 font-bold" />
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
