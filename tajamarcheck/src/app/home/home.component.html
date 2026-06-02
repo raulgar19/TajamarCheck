@@ -447,7 +447,7 @@
         </div>
         
         <div class="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-          <div *ngFor="let rond of rondasHistorial" class="border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/5 transition duration-200 bg-white/2 shadow-sm">
+          <div *ngFor="let rond of rondasHistorial" class="border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-white/5 transition duration-200 bg-white/2 shadow-sm">
             <div class="flex items-center gap-3">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black tracking-widest uppercase border"
                     [ngClass]="rond.tipoClase === 'Presencial' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'">
@@ -460,7 +460,13 @@
                 <span class="text-[10px] font-bold text-slate-500 mt-1.5 block">Curso: Curso {{ rond.cursoId }}</span>
               </div>
             </div>
-            <span class="text-[10px] font-black text-slate-400 bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-lg whitespace-nowrap">{{ rond.fecha | date:'dd MMM yyyy' }}</span>
+            <div class="flex items-center gap-2 sm:justify-end">
+              <a [routerLink]="['/sesiones/fichajes']" [queryParams]="{ sessionId: rond.id }" 
+                 class="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 text-[10px] font-black rounded-lg transition decoration-none whitespace-nowrap">
+                Ver lista
+              </a>
+              <span class="text-[10px] font-black text-slate-400 bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-lg whitespace-nowrap">{{ rond.fecha | date:'dd MMM yyyy' }}</span>
+            </div>
           </div>
           <div *ngIf="rondasHistorial.length === 0" class="text-center py-10 text-xs font-bold text-slate-400">
             No se han registrado rondas de asistencia anteriormente.

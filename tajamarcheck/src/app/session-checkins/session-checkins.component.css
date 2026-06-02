@@ -1,0 +1,14 @@
+/* Local polish for the session checkins dashboard */
+:host {
+	display: block;
+}
+
+table th,
+table td {
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+
+table tbody tr:last-child td {
+	border-bottom: 0;
+}

@@ -1,0 +1,147 @@
+<main class="w-full max-w-7xl mx-auto p-4 md:p-8 animate-fadeIn select-none">
+  <section class="bg-gradient-to-br from-[#0c0f17] via-[#07090e] to-[#040508] text-white border border-white/5 shadow-2xl rounded-3xl p-6 md:p-8 relative overflow-hidden backdrop-blur-xl">
+    <div class="absolute -top-16 -right-16 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-16 w-36 h-36 bg-violet-500/10 rounded-full blur-3xl"></div>
+
+    <div class="relative z-10 flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
+      <div class="space-y-3 max-w-2xl">
+        <div class="inline-flex items-center px-3 py-1 bg-indigo-500/10 border border-indigo-500/25 rounded-lg text-[10px] font-black text-indigo-400 tracking-wider uppercase shadow-md">
+          Fichajes de sesiones
+        </div>
+        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">Lista de fichajes por sesión</h1>
+        <p class="text-slate-300 text-xs md:text-sm font-semibold leading-relaxed">
+          Consulta la sesión actual o entra directamente a cualquier ronda histórica para revisar quién fichó, cuándo y desde qué equipo.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button (click)="openCurrentSession()" class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-xs font-extrabold rounded-xl border-0 cursor-pointer transition btn-interactive shadow-lg shadow-indigo-500/20 whitespace-nowrap">
+          Ver sesión actual
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">
+    <div class="xl:col-span-4 glass-card p-6">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 class="text-lg font-black text-white">Sesiones</h2>
+          <p class="text-xs text-slate-400 font-semibold mt-0.5">Selecciona una ronda para mostrar sus fichajes.</p>
+        </div>
+        <span class="text-[10px] font-black px-2.5 py-1.5 rounded-full border bg-white/5 text-slate-300 border-white/10 whitespace-nowrap">
+          {{ rondas.length }} sesiones
+        </span>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sesión histórica</label>
+          <select [(ngModel)]="selectedSessionId" class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold">
+            <option value="">-- Seleccione una sesión --</option>
+            <option *ngFor="let r of rondas" [value]="r.id">{{ r.fecha | date:'dd MMM yyyy' }} · {{ r.tipoClase }} · Curso {{ r.cursoId }}</option>
+          </select>
+          <button (click)="loadFichajesSesion()" class="mt-3 w-full px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-extrabold rounded-xl transition cursor-pointer active:scale-95">
+            Cargar selección
+          </button>
+        </div>
+
+        <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          <button *ngFor="let rond of rondas"
+                  (click)="loadFichajesSesion(rond.id)"
+                  class="w-full text-left border rounded-2xl p-4 transition duration-200 cursor-pointer flex items-center justify-between gap-4"
+                  [ngClass]="selectedSessionId === rond.id ? 'bg-indigo-500/10 border-indigo-500/30 shadow-lg shadow-indigo-500/10' : 'bg-white/5 border-white/10 hover:bg-white/10'">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl text-xs font-black border shrink-0"
+                    [ngClass]="rond.tipoClase === 'Presencial' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' : 'bg-purple-500/10 text-purple-300 border-purple-500/20'">
+                {{ rond.tipoClase === 'Presencial' ? 'Aula' : 'Casa' }}
+              </span>
+              <div class="min-w-0">
+                <h3 class="text-xs font-black text-white truncate">{{ rond.tipoClase === 'Presencial' ? 'Clase presencial' : 'Clase desde casa' }}</h3>
+                <p class="text-[10px] font-semibold text-slate-400 mt-1 truncate">Curso {{ rond.cursoId }} · {{ rond.fecha | date:'dd MMM yyyy' }}</p>
+              </div>
+            </div>
+            <span class="px-3 py-1.5 rounded-lg text-[10px] font-black whitespace-nowrap bg-white/5 border border-white/10 text-slate-300">
+              Ver
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="xl:col-span-8 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="glass-card p-5">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Sesión mostrada</span>
+          <h3 class="text-lg font-black text-white mt-2 leading-tight">
+            {{ selectedSession?.tipoClase || rondaActual?.tipoClase || 'Sin sesión cargada' }}
+          </h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-2">
+            {{ (selectedSession?.fecha || rondaActual?.fecha) | date:'dd MMM yyyy' }}
+          </p>
+        </div>
+
+        <div class="glass-card p-5">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Fichajes</span>
+          <h3 class="text-3xl font-black text-white mt-2">{{ fichajes.length }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-2">Registros cargados en la sesión</p>
+        </div>
+
+        <div class="glass-card p-5">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Estudiantes únicos</span>
+          <h3 class="text-3xl font-black text-white mt-2">{{ uniqueStudentsCount }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-2">Alumnos distintos en la lista</p>
+        </div>
+      </div>
+
+      <div class="glass-card p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-lg font-black text-white">Detalle de fichajes</h2>
+            <p class="text-xs text-slate-400 font-semibold mt-0.5">Alumno, hora, método, IP y dispositivo detectado.</p>
+          </div>
+          <button (click)="loadFichajesActual()" class="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-extrabold rounded-xl transition cursor-pointer active:scale-95 whitespace-nowrap">
+            Recargar sesión actual
+          </button>
+        </div>
+
+        <div *ngIf="loading" class="text-center text-xs font-semibold py-10 text-slate-400">
+          Cargando fichajes...
+        </div>
+
+        <div *ngIf="error" class="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 px-4 py-3 text-xs font-semibold">
+          {{ error }}
+        </div>
+
+        <div *ngIf="!loading && fichajes.length === 0" class="text-center py-10 text-slate-400 font-semibold text-xs bg-white/5 rounded-2xl border border-dashed border-white/10">
+          No hay fichajes para mostrar en esta sesión.
+        </div>
+
+        <div *ngIf="fichajes.length > 0" class="overflow-x-auto">
+          <table class="w-full text-left border-collapse select-none">
+            <thead>
+              <tr class="border-b border-white/5 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
+                <th class="py-3.5 px-4">Alumno</th>
+                <th class="py-3.5 px-4">Fecha y hora</th>
+                <th class="py-3.5 px-4">Método</th>
+                <th class="py-3.5 px-4">IP</th>
+                <th class="py-3.5 px-4">Hostname</th>
+                <th class="py-3.5 px-4">Equipo</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr *ngFor="let f of fichajes" class="hover:bg-white/5 transition duration-200">
+                <td class="py-4 px-4 text-xs font-black text-white">#{{ f.studentId }}</td>
+                <td class="py-4 px-4 text-xs font-semibold text-slate-300 whitespace-nowrap">{{ f.fechaHora | date:'dd MMM yyyy, HH:mm' }}</td>
+                <td class="py-4 px-4 text-xs font-bold text-slate-300">{{ f.metodo }}</td>
+                <td class="py-4 px-4 text-xs font-semibold text-slate-400 whitespace-nowrap">{{ f.ipDetectada }}</td>
+                <td class="py-4 px-4 text-xs font-semibold text-slate-400 whitespace-nowrap">{{ f.hostnameDetectado }}</td>
+                <td class="py-4 px-4 text-xs font-semibold text-slate-300 whitespace-nowrap">{{ f.equipo?.nombreDispositivo || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
