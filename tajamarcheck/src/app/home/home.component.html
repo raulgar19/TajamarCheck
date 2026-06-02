@@ -54,6 +54,38 @@
 
     </div>
 
+    <!-- SECCIÓN MI ORDENADOR VINCULADO -->
+    <div class="glass-card card-accent-indigo p-6 flex flex-col sm:flex-row items-center justify-between shadow-2xl relative overflow-hidden backdrop-blur-md gap-4">
+      <div class="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl"></div>
+      
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center text-xl font-bold border border-indigo-500/20 shadow-lg select-none">
+          💻
+        </div>
+        <div>
+          <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">Mi Ordenador Asignado</span>
+          <h3 class="text-xl font-black text-white mt-0.5 tracking-tight" *ngIf="miPcAsignado">
+            {{ miPcAsignado.nombreDispositivo }}
+          </h3>
+          <h3 class="text-lg font-black text-slate-400 mt-0.5" *ngIf="!miPcAsignado">
+            Ninguno Vinculado
+          </h3>
+          <span class="text-[10px] font-semibold text-slate-400 mt-1 block" *ngIf="miPcAsignado">
+            IP Registrada: <strong class="text-indigo-300">{{ miPcAsignado.direccionIP }}</strong>
+          </span>
+          <span class="text-[10px] font-semibold text-rose-400 mt-1 block" *ngIf="!miPcAsignado">
+            Debes vincular el PC del aula que estás usando para poder fichar.
+          </span>
+        </div>
+      </div>
+      
+      <div>
+        <button (click)="abrirModalVincularPc()" class="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-xs font-black text-white rounded-xl cursor-pointer active:scale-95 transition shadow-lg shadow-indigo-500/10 whitespace-nowrap btn-interactive">
+          {{ miPcAsignado ? 'CAMBIAR MI PC' : 'VINCULAR PC AHORA' }}
+        </button>
+      </div>
+    </div>
+
     <!-- PANEL PRINCIPAL (Calendario + Lista) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
@@ -208,6 +240,15 @@
           </select>
         </div>
 
+        <!-- Permitir Registro/Cambio de PC -->
+        <div class="flex flex-col w-full sm:w-auto">
+          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1 select-none">Registro de PC</label>
+          <div class="flex items-center gap-2 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 min-h-[38px]">
+            <input type="checkbox" [(ngModel)]="rondaPermitirCambioPC" id="toggle_cambio_pc" class="w-4 h-4 text-indigo-500 bg-white/5 border-white/10 rounded cursor-pointer" />
+            <label for="toggle_cambio_pc" class="text-xs font-bold text-white cursor-pointer select-none">Permitir registrar/cambiar PC</label>
+          </div>
+        </div>
+
         <!-- Button actions side by side -->
         <div class="flex items-center gap-3 w-full sm:w-auto">
           <!-- Abrir Ronda Button -->
@@ -238,6 +279,12 @@
             </h3>
           </div>
           <span class="text-[10px] font-semibold text-slate-400 mt-2 block">Estado actual del portal de fichajes para alumnos</span>
+          <div class="flex items-center gap-2 mt-2.5" *ngIf="rondaActual">
+            <span class="text-[9px] font-black px-2.5 py-1 rounded-full border whitespace-nowrap" 
+                  [ngClass]="rondaActual.permitirCambioPC ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'">
+              {{ rondaActual.permitirCambioPC ? '🔓 VINCULACIÓN PC PERMITIDA' : '🔒 VINCULACIÓN PC BLOQUEADA' }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -460,6 +507,44 @@
         </button>
         <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-xs font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/10 btn-interactive">
           Registrar Asistencia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL REGISTRO DE PC ALUMNO -->
+<div *ngIf="mostrarModalVincularPc" class="fixed inset-0 bg-[#05080f]/80 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-modal-bg">
+  <div class="bg-slate-900/90 border border-white/10 shadow-2xl rounded-3xl p-6 md:p-8 max-w-md w-full animate-modal-card backdrop-blur-xl">
+    <div class="mb-5 flex justify-between items-center select-none">
+      <div>
+        <h3 class="text-lg font-black text-white">Vincular mi PC del Aula</h3>
+        <p class="text-xs text-slate-400 font-semibold mt-0.5">Asigna el equipo actual a tu cuenta para poder fichar</p>
+      </div>
+      <button (click)="mostrarModalVincularPc = false" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-450 hover:text-white text-xs font-bold border-0 cursor-pointer transition flex items-center justify-center">
+        ✕
+      </button>
+    </div>
+
+    <form (ngSubmit)="registrarMiPc()" class="space-y-4">
+      <div>
+        <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nombre del PC (Hostname)</label>
+        <input [(ngModel)]="miPcForm.nombre" name="nombrePc" placeholder="AULA-01-PC-05" required
+               class="w-full px-4 py-3 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-white font-semibold bg-white/5" />
+      </div>
+
+      <div>
+        <label class="block text-[9px] font-bold text-slate-455 uppercase tracking-widest mb-1.5">Direccion IP Actual</label>
+        <input [(ngModel)]="miPcForm.ip" name="ipPc" placeholder="10.203.1.20" required
+               class="w-full px-4 py-3 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-white font-semibold bg-white/5" />
+      </div>
+
+      <div class="pt-4 border-t border-white/5 flex items-center justify-end gap-3 select-none">
+        <button type="button" (click)="mostrarModalVincularPc = false" class="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold rounded-xl border border-white/5 cursor-pointer transition">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-xs font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/10 btn-interactive">
+          Vincular Dispositivo
         </button>
       </div>
     </form>

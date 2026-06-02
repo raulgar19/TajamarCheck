@@ -19,7 +19,7 @@ public sealed class AttendanceLog
     public string Type { get; set; } = string.Empty; // 'Entrada', 'Salida', 'Retraso'
 
     [Required]
-    [MaxLength(200)]
+    [MaxLength(150)]
     public string Subject { get; set; } = string.Empty;
 
     [Required]

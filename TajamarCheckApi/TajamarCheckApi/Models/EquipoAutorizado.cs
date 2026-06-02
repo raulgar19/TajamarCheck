@@ -20,4 +20,6 @@ public sealed class EquipoAutorizado
 
     [Required]
     public bool Activo { get; set; } = true;
+
+    public int? StudentId { get; set; }
 }

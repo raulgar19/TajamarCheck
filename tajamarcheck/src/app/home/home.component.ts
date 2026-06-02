@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { AuthService } from '../auth/auth.service';
-import { StudentService } from './student.service';
+import { AuthService } from '../services/auth.service';
+import { StudentService } from '../services/student.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -32,6 +32,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   delays: any[] = [];
   attendanceLogs: any[] = [];
   
+  miPcAsignado: any = null;
+  mostrarModalVincularPc = false;
+  miPcForm = {
+    nombre: '',
+    ip: '10.203.0.1'
+  };
+  
   // Navigation for Multi-Month Calendar
   currentCalendarDate = new Date();
   calendarDays: any[] = [];
@@ -45,6 +52,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   // ==========================================
   rondaActual: any = null;
   rondaTipo = 'Presencial'; // Default
+  rondaPermitirCambioPC = false;
   rondasHistorial: any[] = [];
   
   // CRUD de Equipos
@@ -98,6 +106,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     console.log(`HomeComponent: Sesión iniciada para ${this.username}. Rol: ${this.role}`);
 
+    this.syncProfileFromApi();
+
     if (this.role === 'alumno') {
       this.loadStudentData();
     } else {
@@ -121,6 +131,37 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.authSub?.unsubscribe();
+  }
+
+  syncProfileFromApi() {
+    const token = localStorage.getItem('token') || '';
+    if (!token) {
+      console.warn('HomeComponent: No hay token disponible para consultar el perfil.');
+      return;
+    }
+
+    console.log('HomeComponent: Consultando endpoint de perfil para cachear datos en localStorage...');
+    this.studentService.getExternalProfile(token).subscribe({
+      next: (res) => {
+        console.log('HomeComponent: Respuesta del perfil recibida:', res);
+        const user = res?.usuario;
+        if (!user) {
+          console.warn('HomeComponent: El perfil no contiene la propiedad usuario.');
+          return;
+        }
+
+        console.log('HomeComponent: usuario del perfil:', user);
+        console.log('HomeComponent: idCurso detectado en perfil:', user.idCurso);
+        this.authService.saveExternalProfileData(user);
+
+        if (user.idCurso) {
+          this.authService.setCourseId(Number(user.idCurso));
+        }
+      },
+      error: (err) => {
+        console.error('HomeComponent: Error consultando el perfil externo:', err);
+      }
+    });
   }
 
   // ==========================================
@@ -154,6 +195,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       error: (err) => console.error('Error al cargar registros:', err),
       complete: () => { this.loading = false; }
     });
+
+    // Cargar PC asignado del alumno
+    this.loadMiPcAsignado();
   }
 
   recalculatePercentage() {
@@ -242,6 +286,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.rondaActual = ronda;
         if (ronda) {
           this.rondaTipo = ronda.tipoClase;
+          this.rondaPermitirCambioPC = ronda.permitirCambioPC;
         }
       },
       error: (err) => console.error('Error al cargar ronda actual:', err)
@@ -273,9 +318,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   abrirRonda() {
+    const courseId = this.authService.getCourseId();
+    console.log('HomeComponent: Abriendo ronda con courseId desde storage:', courseId);
+
     this.http.post<any>('/api/attendance/rondas/abrir', {
       tipoClase: this.rondaTipo,
-      cursoId: 1
+      cursoId: courseId,
+      permitirCambioPC: this.rondaPermitirCambioPC
     }).subscribe({
       next: (res) => {
         console.log('Ronda abierta/actualizada con éxito:', res);
@@ -400,6 +449,55 @@ export class HomeComponent implements OnInit, OnDestroy {
         error: (err) => alert('Error al registrar retraso: ' + err.message)
       });
     }
+  }
+
+  loadMiPcAsignado() {
+    this.http.get<any[]>('/api/attendance/equipos').subscribe({
+      next: (eqs) => {
+        this.miPcAsignado = eqs.find(e => e.studentId === this.studentId) || null;
+        if (this.miPcAsignado) {
+          this.miPcForm.nombre = this.miPcAsignado.nombreDispositivo;
+          this.miPcForm.ip = this.miPcAsignado.direccionIP;
+        }
+      },
+      error: (err) => console.error('Error al cargar mi PC:', err)
+    });
+  }
+
+  abrirModalVincularPc() {
+    this.mostrarModalVincularPc = true;
+    this.http.get<any>('/api/attendance/equipos/detectar-conexion').subscribe({
+      next: (res) => {
+        if (res && res.success) {
+          this.miPcForm.nombre = res.hostname || this.miPcForm.nombre;
+          this.miPcForm.ip = res.ip || this.miPcForm.ip;
+        }
+      },
+      error: (err) => {
+        console.error('Error al detectar conexión automática:', err);
+      }
+    });
+  }
+
+  registrarMiPc() {
+    if (!this.miPcForm.nombre.trim() || !this.miPcForm.ip.trim()) {
+      alert('Todos los campos son obligatorios.');
+      return;
+    }
+    this.http.post<any>('/api/attendance/equipos/registrar-alumno', {
+      studentId: this.studentId,
+      nombreDispositivo: this.miPcForm.nombre.trim(),
+      direccionIP: this.miPcForm.ip.trim()
+    }).subscribe({
+      next: (res) => {
+        alert(res.message);
+        this.mostrarModalVincularPc = false;
+        this.loadStudentData(); // Recargar datos del alumno
+      },
+      error: (err) => {
+        alert('Error al registrar PC: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   // ==========================================

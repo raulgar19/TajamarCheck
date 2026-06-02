@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -82,7 +82,7 @@ export class LoginComponent implements OnInit {
               email = this.username;
             }
 
-            // Intentar extraer rol desde la respuesta (ej: "PROFESOR" o "ALUMNO")
+            // Intentar extraer rol y curso desde la respuesta (ej: "PROFESOR" o "ALUMNO")
             let apiRole: string | undefined = undefined;
             try {
               if (res && typeof res === 'object') {

@@ -15,7 +15,7 @@ public sealed class Absence
     public int StudentId { get; set; }
 
     [Required]
-    [MaxLength(200)]
+    [MaxLength(150)]
     public string Subject { get; set; } = string.Empty;
 
     [Required]

@@ -16,7 +16,6 @@ export class StudentService {
     return this.http.get<any[]>(`/api/attendance/logs/${studentId}`);
   }
 
-  // Obtener perfil externo desde API de Charlas Tajamar
   getExternalProfile(token: string): Observable<any> {
     return this.http.get<any>('https://apicharlasalumnostajamartesting.azurewebsites.net/api/Usuarios/Perfil', {
       headers: {
@@ -25,12 +24,10 @@ export class StudentService {
     });
   }
 
-  // Obtener ronda actual
   getRondaActual(): Observable<any> {
     return this.http.get<any>('/api/attendance/ronda-actual');
   }
 
-  // Enviar fichaje de alumno
   ficharAlumno(studentId: number, type: string, devHostname?: string): Observable<any> {
     return this.http.post<any>('/api/attendance/fichar/alumno', {
       studentId: studentId,

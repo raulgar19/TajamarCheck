@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
-import { StudentService } from '../home/student.service';
+import { AuthService } from '../services/auth.service';
+import { StudentService } from '../services/student.service';
 import { Subscription } from 'rxjs';
-import { AuthState } from '../auth/auth.service';
+import { AuthState } from '../services/auth.service';
 
 @Component({
   selector: 'app-profile',
@@ -43,6 +43,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.username = this.authService.getUsername();
     this.role = this.authService.getRole();
     this.email = this.authService.getEmail() || this.username;
+    const storedCourseId = this.authService.getCourseId();
+    if (storedCourseId > 0) {
+      this.course = `Curso ${storedCourseId}`;
+    }
     
     // Attempt to load profile from the real external API of Tajamar
     const token = localStorage.getItem('token') || '';
@@ -58,6 +62,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
             this.avatarUrl = user.imagen || '';
             this.isActive = user.estadoUsuario !== false; // boolean
             this.role = user.role.toLowerCase() === 'alumno' ? 'alumno' : 'profesor';
+            const courseId = this.extractCourseId(user);
+            if (courseId > 0) {
+              this.authService.setCourseId(courseId);
+            }
           } else {
             this.loadFallbackDetails();
           }
@@ -97,6 +105,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
                 this.avatarUrl = user.imagen || '';
                 this.isActive = user.estadoUsuario !== false;
                 this.role = user.role.toLowerCase() === 'alumno' ? 'alumno' : 'profesor';
+                const courseId = this.extractCourseId(user);
+                if (courseId > 0) {
+                  this.authService.setCourseId(courseId);
+                }
               } else {
                 this.loadFallbackDetails();
               }
@@ -128,6 +140,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.fullName = 'Raúl García López';
       this.course = 'Master Full Stack - Especialidad en .NET Core & Angular (2026)';
     }
+  }
+
+  private extractCourseId(user: any): number {
+    const raw = user?.cursoId ?? user?.courseId ?? user?.curso?.id ?? user?.course?.id;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }
 
   goBack() {

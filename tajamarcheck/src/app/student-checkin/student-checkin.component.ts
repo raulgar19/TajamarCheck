@@ -2,10 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
-import { StudentService } from '../home/student.service';
+import { AuthService } from '../services/auth.service';
+import { StudentService } from '../services/student.service';
 import { Subscription } from 'rxjs';
-import { AuthState } from '../auth/auth.service';
+import { AuthState } from '../services/auth.service';
 
 @Component({
   selector: 'app-student-checkin',

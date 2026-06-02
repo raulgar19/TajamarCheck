@@ -1,7 +1,7 @@
 import { Component, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService, AuthState } from '../../auth/auth.service';
+import { AuthService, AuthState } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({

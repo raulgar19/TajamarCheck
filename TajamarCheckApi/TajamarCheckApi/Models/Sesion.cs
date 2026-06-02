@@ -19,4 +19,7 @@ public sealed class Sesion
 
     [Required]
     public int CursoId { get; set; } = 1;
+
+    [Required]
+    public bool PermitirCambioPC { get; set; } = false;
 }

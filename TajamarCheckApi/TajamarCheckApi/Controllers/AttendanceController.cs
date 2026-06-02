@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +59,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
 
         if (string.IsNullOrWhiteSpace(absence.Subject))
         {
-            return BadRequest(new { success = false, message = "La asignatura/materia es requerida." });
+            return BadRequest(new { success = false, message = "La asignatura/materia (subject) es requerida." });
         }
 
         if (string.IsNullOrWhiteSpace(absence.Time))
@@ -108,7 +110,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
 
         if (string.IsNullOrWhiteSpace(log.Subject))
         {
-            return BadRequest(new { success = false, message = "La asignatura/materia es requerida." });
+            return BadRequest(new { success = false, message = "La asignatura/materia (subject) es requerida." });
         }
 
         if (string.IsNullOrWhiteSpace(log.Time))
@@ -176,6 +178,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         {
             existingRonda.TipoClase = request.TipoClase;
             existingRonda.CursoId = request.CursoId <= 0 ? 1 : request.CursoId;
+            existingRonda.PermitirCambioPC = request.PermitirCambioPC;
             context.Sesiones.Update(existingRonda);
             await context.SaveChangesAsync();
             return Ok(new { success = true, message = $"Ronda de hoy actualizada a '{request.TipoClase}'", data = existingRonda });
@@ -185,7 +188,8 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         {
             TipoClase = request.TipoClase,
             Fecha = today,
-            CursoId = request.CursoId <= 0 ? 1 : request.CursoId
+            CursoId = request.CursoId <= 0 ? 1 : request.CursoId,
+            PermitirCambioPC = request.PermitirCambioPC
         };
 
         context.Sesiones.Add(nuevaRonda);
@@ -246,6 +250,12 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             return StatusCode(403, new { success = false, message = $"El dispositivo '{clientHostname}' no está registrado o activo en la lista blanca de equipos." });
         }
 
+        // Validar que el dispositivo esté asignado a ESTE alumno (StudentId)
+        if (device.StudentId != request.StudentId)
+        {
+            return StatusCode(403, new { success = false, message = $"Fichaje denegado: El dispositivo '{clientHostname}' no está asignado a tu cuenta de estudiante (ID: {request.StudentId})." });
+        }
+
         // Validar IP (permitir coincidencia de IP registrada)
         var normalizedDeviceIp = NormalizeIpAddress(device.DireccionIP);
         if (normalizedDeviceIp != clientIp && normalizedDeviceIp != "127.0.0.1" && clientIp != "127.0.0.1")
@@ -270,7 +280,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         {
             StudentId = request.StudentId,
             Type = request.Type, // "Entrada" o "Salida"
-            Subject = "TajamarCheck Presencial",
+            Subject = $"Asistencia ({round.TipoClase})",
             Date = today,
             Time = DateTime.Now.ToString("HH:mm"),
             CreatedAt = DateTime.UtcNow,
@@ -292,6 +302,8 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     // ==========================================
     // NEW DEVICE WHITELIST CRUD ENDPOINTS
     // ==========================================
+
+
 
     // GET: api/attendance/equipos
     [HttpGet("equipos")]
@@ -322,6 +334,106 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         context.EquiposAutorizados.Add(equipo);
         await context.SaveChangesAsync();
         return Created("", equipo);
+    }
+
+    // GET: api/attendance/equipos/detectar-conexion
+    [HttpGet("equipos/detectar-conexion")]
+    public IActionResult DetectarConexion()
+    {
+        var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var clientIp = NormalizeIpAddress(rawIp);
+
+        // Si la conexión viene de localhost durante el desarrollo o prueba,
+        // resolvemos la dirección IPv4 física activa asignada a la máquina (Wi-Fi o Ethernet)
+        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "0.0.0.1" || clientIp == "localhost")
+        {
+            clientIp = GetPhysicalNetworkIpAddress();
+        }
+
+        var clientHostname = HttpContext.Request.Headers["X-Client-Hostname"].ToString();
+        if (string.IsNullOrWhiteSpace(clientHostname))
+        {
+            try
+            {
+                if (rawIp != "127.0.0.1" && rawIp != "::1" && rawIp != "0.0.0.1")
+                {
+                    var entry = System.Net.Dns.GetHostEntry(rawIp);
+                    clientHostname = entry.HostName.Split('.')[0];
+                }
+                else
+                {
+                    clientHostname = System.Environment.MachineName;
+                }
+            }
+            catch
+            {
+                clientHostname = System.Environment.MachineName; // Fallback al nombre de esta máquina
+            }
+        }
+
+        return Ok(new { success = true, ip = clientIp, hostname = clientHostname });
+    }
+
+    // POST: api/attendance/equipos/registrar-alumno
+    [HttpPost("equipos/registrar-alumno")]
+    public async Task<IActionResult> RegistrarEquipoAlumno([FromBody] RegistrarEquipoAlumnoRequest request)
+    {
+        if (request == null || request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.NombreDispositivo) || string.IsNullOrWhiteSpace(request.DireccionIP))
+        {
+            return BadRequest(new { success = false, message = "Todos los campos (studentId, nombreDispositivo, direccionIP) son requeridos." });
+        }
+
+        // Validar si el profesor permite el registro o cambio de PC para hoy
+        var today = DateTime.Today;
+        var round = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        if (round == null)
+        {
+            return StatusCode(403, new { success = false, message = "El registro o cambio de PC está denegado: El profesor no ha abierto ninguna ronda para el día de hoy." });
+        }
+        if (!round.PermitirCambioPC)
+        {
+            return StatusCode(403, new { success = false, message = "El registro o cambio de PC está bloqueado por el profesor para la sesión de hoy." });
+        }
+
+        // 1. Quitar la asignación previa que tuviera este alumno en cualquier PC
+        var antiguosEquipos = await context.EquiposAutorizados
+            .Where(e => e.StudentId == request.StudentId)
+            .ToListAsync();
+        
+        foreach (var antiguo in antiguosEquipos)
+        {
+            antiguo.StudentId = null;
+            context.EquiposAutorizados.Update(antiguo);
+        }
+
+        // 2. Buscar si el PC actual ya existe en la lista de EquiposAutorizados
+        var pcExistente = await context.EquiposAutorizados
+            .FirstOrDefaultAsync(e => e.NombreDispositivo.ToLower() == request.NombreDispositivo.ToLower());
+
+        if (pcExistente != null)
+        {
+            // Si el PC existe, lo actualizamos con los datos del alumno y lo forzamos a estar Activo
+            pcExistente.StudentId = request.StudentId;
+            pcExistente.DireccionIP = request.DireccionIP;
+            pcExistente.Activo = true;
+            context.EquiposAutorizados.Update(pcExistente);
+            await context.SaveChangesAsync();
+            return Ok(new { success = true, message = $"Equipo '{request.NombreDispositivo}' asignado con éxito a tu cuenta.", data = pcExistente });
+        }
+        else
+        {
+            // Si no existe, creamos un nuevo registro de equipo asignado a este alumno
+            var nuevoEquipo = new EquipoAutorizado
+            {
+                NombreDispositivo = request.NombreDispositivo,
+                DireccionIP = request.DireccionIP,
+                StudentId = request.StudentId,
+                Activo = true
+            };
+            context.EquiposAutorizados.Add(nuevoEquipo);
+            await context.SaveChangesAsync();
+            return Created("", new { success = true, message = $"Equipo '{request.NombreDispositivo}' registrado y asignado con éxito a tu cuenta.", data = nuevoEquipo });
+        }
     }
 
     // PUT: api/attendance/equipos/{id}
@@ -377,6 +489,73 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         }
         return ip;
     }
+
+    private string GetPhysicalNetworkIpAddress()
+    {
+        try
+        {
+            var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+            string wifiIp = "";
+            string ethernetIp = "";
+            string fallbackIp = "";
+
+            foreach (var ni in interfaces)
+            {
+                if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up)
+                    continue;
+
+                var type = ni.NetworkInterfaceType;
+                if (type != System.Net.NetworkInformation.NetworkInterfaceType.Ethernet && 
+                    type != System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211)
+                    continue;
+
+                string name = ni.Name.ToLower();
+                string desc = ni.Description.ToLower();
+                if (name.Contains("virtual") || name.Contains("vethernet") || name.Contains("vmware") || 
+                    name.Contains("virtualbox") || name.Contains("wsl") || name.Contains("loopback") || 
+                    name.Contains("pseudo") || name.Contains("hyper-v") ||
+                    desc.Contains("virtual") || desc.Contains("vethernet") || desc.Contains("vmware") || 
+                    desc.Contains("virtualbox") || desc.Contains("wsl") || desc.Contains("loopback") || 
+                    desc.Contains("pseudo") || desc.Contains("hyper-v"))
+                    continue;
+
+                var ipProps = ni.GetIPProperties();
+                foreach (var addr in ipProps.UnicastAddresses)
+                {
+                    if (addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        var ipStr = addr.Address.ToString();
+                        if (ipStr != "127.0.0.1")
+                        {
+                            if (type == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211)
+                            {
+                                wifiIp = ipStr;
+                            }
+                            else if (type == System.Net.NetworkInformation.NetworkInterfaceType.Ethernet)
+                            {
+                                ethernetIp = ipStr;
+                            }
+                            else
+                            {
+                                fallbackIp = ipStr;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(wifiIp)) return wifiIp;
+            if (!string.IsNullOrEmpty(ethernetIp)) return ethernetIp;
+            if (!string.IsNullOrEmpty(fallbackIp)) return fallbackIp;
+        }
+        catch
+        {
+            // Ignorar
+        }
+
+        return "127.0.0.1";
+    }
+
 }
 
 // ==========================================
@@ -387,6 +566,7 @@ public sealed class RondasRequest
 {
     public string TipoClase { get; set; } = string.Empty; // "Presencial" o "Casa"
     public int CursoId { get; set; } = 1;
+    public bool PermitirCambioPC { get; set; } = false;
 }
 
 public sealed class FichajeAlumnoRequest
@@ -394,4 +574,11 @@ public sealed class FichajeAlumnoRequest
     public int StudentId { get; set; }
     public string Type { get; set; } = string.Empty; // "Entrada" o "Salida"
     public string? DevHostname { get; set; } // Opcional para pruebas locales
+}
+
+public sealed class RegistrarEquipoAlumnoRequest
+{
+    public int StudentId { get; set; }
+    public string NombreDispositivo { get; set; } = string.Empty;
+    public string DireccionIP { get; set; } = string.Empty;
 }
