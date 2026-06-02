@@ -1,20 +1,60 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+export interface AuthState {
+  isLoggedIn: boolean;
+  username: string;
+  email: string;
+  role: 'alumno' | 'profesor';
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  constructor() {}
+  private authStateSubject: BehaviorSubject<AuthState>;
+  public authState$: Observable<AuthState>;
 
-  saveSession(token: string, username: string) {
+  constructor() {
+    const initial: AuthState = {
+      isLoggedIn: this.isLoggedIn(),
+      username: this.getUsername(),
+      email: this.getEmail(),
+      role: this.getRole()
+    };
+    this.authStateSubject = new BehaviorSubject<AuthState>(initial);
+    this.authState$ = this.authStateSubject.asObservable();
+  }
+  saveSession(token: string, username: string, email?: string, roleFromApi?: string) {
     localStorage.setItem('token', token);
     localStorage.setItem('username', username);
-    
-    // Role detection rule: if username contains 'profe' or 'admin' -> profesor, else -> alumno
-    const isTeacher = username.toLowerCase().includes('profe') || username.toLowerCase().includes('admin');
-    const role = isTeacher ? 'profesor' : 'alumno';
+    if (email) {
+      localStorage.setItem('email', email);
+    } else if (username && username.includes('@')) {
+      // If username looks like an email, store it as email too
+      localStorage.setItem('email', username);
+    }
+
+    // Determine role: prefer explicit role from API, otherwise fallback to username/email detection
+    let role: 'alumno' | 'profesor';
+    if (roleFromApi) {
+      const probeApi = roleFromApi.toLowerCase();
+      role = probeApi.includes('prof') || probeApi.includes('admin') ? 'profesor' : 'alumno';
+    } else {
+      const probe = (email || username || '').toLowerCase();
+      const isTeacher = probe.includes('profe') || probe.includes('admin');
+      role = isTeacher ? 'profesor' : 'alumno';
+    }
     localStorage.setItem('role', role);
-    console.log(`AuthService: Sesión guardada. Usuario: ${username}, Rol asignado: ${role}`);
+    console.log(`AuthService: Sesión guardada. Usuario: ${username}, Email: ${localStorage.getItem('email')}, Rol asignado: ${role}`);
+
+    // Emit updated auth state
+    this.authStateSubject.next({
+      isLoggedIn: true,
+      username: username,
+      email: localStorage.getItem('email') || '',
+      role: role
+    });
   }
 
   isLoggedIn(): boolean {
@@ -23,6 +63,10 @@ export class AuthService {
 
   getUsername(): string {
     return localStorage.getItem('username') || '';
+  }
+
+  getEmail(): string {
+    return localStorage.getItem('email') || '';
   }
 
   getRole(): 'alumno' | 'profesor' {
@@ -43,6 +87,15 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    localStorage.removeItem('email');
     console.log('AuthService: Sesión eliminada.');
+
+    // Emit logged out state
+    this.authStateSubject.next({
+      isLoggedIn: false,
+      username: '',
+      email: '',
+      role: 'alumno'
+    });
   }
 }

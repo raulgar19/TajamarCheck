@@ -28,7 +28,8 @@ export class LoginComponent implements OnInit {
     console.log('LoginComponent: Iniciando componente...');
     if (this.authService.isLoggedIn()) {
       console.log('LoginComponent: Sesión activa encontrada. Redirigiendo a home...');
-      this.router.navigate(['/home']);
+      const currentRole = this.authService.getRole();
+      this.router.navigate(['/home'], { queryParams: { role: currentRole } });
     }
   }
 
@@ -66,10 +67,36 @@ export class LoginComponent implements OnInit {
           }
 
           if (token) {
-            // Guardar sesión usando el AuthService (maneja el rol dinámico)
-            this.authService.saveSession(token, this.username);
+            // Intentar extraer email real de la respuesta si viene en alguna propiedad común
+            let email: string | undefined = undefined;
+            try {
+              if (res && typeof res === 'object') {
+                email = (res.email || res.emailAddress || res.mail || res.user?.email || res.response?.email) as string | undefined;
+              }
+            } catch (e) {
+              // ignore extraction errors
+            }
+
+            // If username looks like an email, prefer that when no explicit email returned
+            if (!email && this.username.includes('@')) {
+              email = this.username;
+            }
+
+            // Intentar extraer rol desde la respuesta (ej: "PROFESOR" o "ALUMNO")
+            let apiRole: string | undefined = undefined;
+            try {
+              if (res && typeof res === 'object') {
+                apiRole = (res.role || res.roleName || (res.idrole ? (res.idrole === 1 ? 'PROFESOR' : 'ALUMNO') : undefined)) as string | undefined;
+              }
+            } catch (e) {}
+
+            // Mapear rol de API a valores internos ('profesor' | 'alumno') y guardar sesión con rol explícito
+            this.authService.saveSession(token, this.username, email, apiRole);
             console.log('LoginComponent: Sesión guardada con éxito. Navegando a Home...');
-            this.router.navigate(['/home']);
+
+            // Navegar al home; añadimos query param con rol para que el componente pueda reaccionar si lo necesita
+            const mappedRole = apiRole && apiRole.toString().toLowerCase().includes('prof') ? 'profesor' : 'alumno';
+            this.router.navigate(['/home'], { queryParams: { role: mappedRole } });
           } else {
             console.error('LoginComponent: La respuesta no contiene un formato de token conocido:', res);
             this.error = 'No se pudo recuperar el token de la respuesta.';

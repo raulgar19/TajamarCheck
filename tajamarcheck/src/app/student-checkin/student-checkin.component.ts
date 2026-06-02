@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { StudentService } from '../home/student.service';
+import { Subscription } from 'rxjs';
+import { AuthState } from '../auth/auth.service';
 
 @Component({
   selector: 'app-student-checkin',
@@ -12,11 +14,12 @@ import { StudentService } from '../home/student.service';
   templateUrl: './student-checkin.component.html',
   styleUrl: './student-checkin.component.css'
 })
-export class StudentCheckinComponent implements OnInit {
+export class StudentCheckinComponent implements OnInit, OnDestroy {
   username = '';
   studentId = 101;
   role = 'alumno';
   loading = false;
+  private authSub?: Subscription;
   
   // Status state
   rondaActual: any = null;
@@ -38,17 +41,37 @@ export class StudentCheckinComponent implements OnInit {
       return;
     }
 
+    // Initialize from current auth state
     this.username = this.authService.getUsername();
     this.studentId = this.authService.getStudentId();
     this.role = this.authService.getRole();
 
     if (this.role !== 'alumno') {
-      // Los profesores no fichan de forma autónoma
       this.router.navigate(['/home']);
       return;
     }
 
     this.loadRondaStatus();
+
+    // Subscribe to auth state to react to login/logout changes
+    this.authSub = this.authService.authState$.subscribe((s: AuthState) => {
+      if (!s.isLoggedIn) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      // If role changed to non-alumno, redirect to home
+      if (s.role !== 'alumno') {
+        this.router.navigate(['/home']);
+        return;
+      }
+      // Update username/studentId if changed
+      this.username = s.username;
+      this.studentId = this.authService.getStudentId();
+    });
+  }
+
+  ngOnDestroy() {
+    this.authSub?.unsubscribe();
   }
 
   loadRondaStatus() {

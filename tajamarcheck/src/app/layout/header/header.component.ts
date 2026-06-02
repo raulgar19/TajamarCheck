@@ -1,7 +1,8 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../auth/auth.service';
+import { AuthService, AuthState } from '../../auth/auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -10,10 +11,12 @@ import { AuthService } from '../../auth/auth.service';
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
   username = '';
+  email = '';
   role: 'alumno' | 'profesor' = 'alumno';
   isDropdownOpen = false;
+  private authSub?: Subscription;
 
   constructor(
     private router: Router,
@@ -22,11 +25,22 @@ export class HeaderComponent implements OnInit {
 
   ngOnInit() {
     this.refreshUser();
+    // Subscribe to auth state so header updates on login/logout
+    this.authSub = this.authService.authState$.subscribe((s: AuthState) => {
+      this.username = s.username;
+      this.email = s.email;
+      this.role = s.role;
+    });
+  }
+
+  ngOnDestroy() {
+    this.authSub?.unsubscribe();
   }
 
   // Comprobar rol actual
   refreshUser() {
     this.username = this.authService.getUsername();
+    this.email = this.authService.getEmail();
     this.role = this.authService.getRole();
   }
 

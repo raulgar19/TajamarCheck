@@ -24,7 +24,7 @@
     </a>
 
     <!-- Botón Rápido de Fichaje Autónomo (Visible para estudiantes en el Home) -->
-    <a *ngIf="authService.getRole() === 'alumno' && !isFicharPage()" 
+    <a *ngIf="role === 'alumno' && !isFicharPage()" 
        routerLink="/fichar" 
        class="hidden sm:inline-flex items-center px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs font-bold rounded-xl transition decoration-none active:scale-95 hover:shadow-lg hover:shadow-indigo-500/5">
       Fichar
@@ -45,7 +45,7 @@
         <!-- Nombre y Rol (Solo Desktop) -->
         <div class="hidden md:flex flex-col text-left">
           <span class="text-xs font-bold text-slate-200 leading-none truncate max-w-[100px]">{{ username }}</span>
-          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5">{{ authService.getRole() }}</span>
+          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5">{{ role | titlecase }}</span>
         </div>
         
         <!-- Chevron Animado -->
@@ -62,8 +62,8 @@
         <!-- Cabecera del Dropdown -->
         <div class="px-3 py-2 border-b border-white/5 mb-1.5 text-left select-none">
           <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest block">Sesión Activa</span>
-          <h4 class="text-xs font-black text-white truncate leading-tight mt-1">{{ username }}</h4>
-          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5 block">Rol: {{ authService.getRole() }}</span>
+          <h4 class="text-xs font-black text-white truncate leading-tight mt-1">{{ email || username }}</h4>
+          <span class="text-[9px] font-semibold text-slate-400 capitalize mt-0.5 block">Rol: {{ role | titlecase }}</span>
         </div>
 
         <!-- Opción: Mi Perfil -->

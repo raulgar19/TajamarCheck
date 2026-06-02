@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
 import { StudentService } from './student.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -13,11 +14,12 @@ import { StudentService } from './student.service';
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   username = '';
   role: 'alumno' | 'profesor' = 'alumno';
   studentId = 101;
   loading = false;
+  private authSub?: Subscription;
 
   // ==========================================
   // ESTUDIANTE STATE
@@ -89,6 +91,7 @@ export class HomeComponent implements OnInit {
       return;
     }
 
+    // Inicializar con valores actuales
     this.username = this.authService.getUsername();
     this.role = this.authService.getRole();
     this.studentId = this.authService.getStudentId();
@@ -100,6 +103,24 @@ export class HomeComponent implements OnInit {
     } else {
       this.loadTeacherData();
     }
+
+    // Suscribirse a cambios de sesión para actualizar dinámicamente
+    this.authSub = this.authService.authState$.subscribe(s => {
+      if (s.username !== this.username || s.role !== this.role) {
+        this.username = s.username;
+        this.role = s.role;
+        this.studentId = this.authService.getStudentId();
+        if (this.role === 'alumno') {
+          this.loadStudentData();
+        } else {
+          this.loadTeacherData();
+        }
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.authSub?.unsubscribe();
   }
 
   // ==========================================
