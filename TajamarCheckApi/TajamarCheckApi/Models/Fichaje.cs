@@ -32,4 +32,10 @@ public sealed class Fichaje
     [Required]
     [MaxLength(150)]
     public string HostnameDetectado { get; set; } = string.Empty;
+
+    [Required]
+    public Guid IdSesion { get; set; } = Guid.NewGuid();
+
+    [ForeignKey(nameof(IdSesion))]
+    public Sesion? Sesion { get; set; }
 }

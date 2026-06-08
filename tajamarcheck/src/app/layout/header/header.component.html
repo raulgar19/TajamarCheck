@@ -72,6 +72,12 @@
           <span>Mi Perfil</span>
         </a>
 
+        <!-- Opción: Ver fichajes de sesiones (profesores) -->
+        <a *ngIf="role === 'profesor'" routerLink="/sesiones/fichajes" (click)="closeDropdown()"
+           class="flex items-center px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition decoration-none cursor-pointer">
+          <span>Fichajes de Sesiones</span>
+        </a>
+
         <!-- Separación y Logout -->
         <div class="border-t border-white/5 my-1"></div>
         
