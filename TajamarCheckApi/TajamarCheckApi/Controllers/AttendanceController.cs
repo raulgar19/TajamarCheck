@@ -556,6 +556,183 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         return "127.0.0.1";
     }
 
+    // ==========================================
+    // NEW ADMIN / MANUAL ATTENDANCE ENDPOINTS
+    // ==========================================
+
+    // POST: /api/admin/asistencia-manual
+    [HttpPost("/api/admin/asistencia-manual")]
+    public async Task<IActionResult> RegistrarAsistenciaManual([FromBody] AsistenciaManualRequest request)
+    {
+        if (request == null || request.StudentId <= 0 || request.SessionId == Guid.Empty)
+        {
+            return BadRequest(new { success = false, message = "Los campos studentId y sessionId son obligatorios." });
+        }
+
+        var session = await context.Sesiones.FindAsync(request.SessionId);
+        if (session == null)
+        {
+            return NotFound(new { error = "La sesión de clase especificada no existe." });
+        }
+
+        var today = session.Fecha.Date;
+
+        // Determinar tipo si no viene especificado
+        var type = request.Type;
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            // Auto-detectar si ya tiene Entrada hoy
+            var yaTieneEntrada = await context.AttendanceLogs
+                .AnyAsync(l => l.StudentId == request.StudentId && l.Date.Date == today && l.Type == "Entrada");
+            type = yaTieneEntrada ? "Salida" : "Entrada";
+        }
+
+        if (type == "Falta")
+        {
+            // Primero limpiamos cualquier registro previo para hoy para no duplicar
+            var existingAbsences = await context.Absences
+                .Where(a => a.StudentId == request.StudentId && a.Date.Date == today)
+                .ToListAsync();
+            if (existingAbsences.Any()) context.Absences.RemoveRange(existingAbsences);
+
+            var existingLogs = await context.AttendanceLogs
+                .Where(l => l.StudentId == request.StudentId && l.Date.Date == today)
+                .ToListAsync();
+            if (existingLogs.Any()) context.AttendanceLogs.RemoveRange(existingLogs);
+
+            var existingFichajes = await context.Fichajes
+                .Where(f => f.StudentId == request.StudentId && f.FechaHora.Date == today)
+                .ToListAsync();
+            if (existingFichajes.Any()) context.Fichajes.RemoveRange(existingFichajes);
+
+            // Registrar falta
+            var absence = new Absence
+            {
+                StudentId = request.StudentId,
+                Subject = $"Asistencia ({session.TipoClase})",
+                Date = today,
+                Time = DateTime.Now.ToString("HH:mm")
+            };
+            context.Absences.Add(absence);
+            await context.SaveChangesAsync();
+            return Ok(new { mensaje = "Fichaje manual registrado por el profesor con éxito.", id = absence.Id.ToString() });
+        }
+        else
+        {
+            // Si es entrada/salida/retraso, limpiamos falta si existiera
+            var existingAbsences = await context.Absences
+                .Where(a => a.StudentId == request.StudentId && a.Date.Date == today)
+                .ToListAsync();
+            if (existingAbsences.Any()) context.Absences.RemoveRange(existingAbsences);
+
+            // Si es Entrada o Retraso, limpiamos entradas/retrasos previos
+            if (type == "Entrada" || type == "Retraso")
+            {
+                var prevLogs = await context.AttendanceLogs
+                    .Where(l => l.StudentId == request.StudentId && l.Date.Date == today && (l.Type == "Entrada" || l.Type == "Retraso"))
+                    .ToListAsync();
+                if (prevLogs.Any()) context.AttendanceLogs.RemoveRange(prevLogs);
+            }
+            // Si es Salida, limpiamos salidas previas
+            else if (type == "Salida")
+            {
+                var prevLogs = await context.AttendanceLogs
+                    .Where(l => l.StudentId == request.StudentId && l.Date.Date == today && l.Type == "Salida")
+                    .ToListAsync();
+                if (prevLogs.Any()) context.AttendanceLogs.RemoveRange(prevLogs);
+            }
+
+            // Registrar Fichaje
+            var fichaje = new Fichaje
+            {
+                StudentId = request.StudentId,
+                FechaHora = DateTime.UtcNow,
+                EquipoId = null,
+                Metodo = "Manual_Profesor",
+                IpDetectada = "Casa",
+                HostnameDetectado = "Casa"
+            };
+            context.Fichajes.Add(fichaje);
+
+            // Registrar en AttendanceLogs (Legacy Sync)
+            var legacyLog = new AttendanceLog
+            {
+                StudentId = request.StudentId,
+                Type = type,
+                Subject = $"Asistencia ({session.TipoClase})",
+                Date = today,
+                Time = DateTime.Now.ToString("HH:mm"),
+                CreatedAt = DateTime.UtcNow,
+                Minutes = request.Minutes,
+                Text = request.Text ?? $"Fichaje manual ({type}) registrado por el profesor en clase desde {session.TipoClase}"
+            };
+            context.AttendanceLogs.Add(legacyLog);
+            await context.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Fichaje manual registrado por el profesor con éxito.", id = fichaje.Id.ToString() });
+        }
+    }
+
+    // GET: api/attendance/diario
+    [HttpGet("diario")]
+    public async Task<IActionResult> GetReporteDiario([FromQuery] DateTime? date)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+
+        var logs = await context.AttendanceLogs
+            .Where(l => l.Date.Date == targetDate)
+            .ToListAsync();
+
+        var absences = await context.Absences
+            .Where(a => a.Date.Date == targetDate)
+            .ToListAsync();
+
+        return Ok(new {
+            logs = logs.Select(l => new {
+                l.Id,
+                l.StudentId,
+                l.Type,
+                l.Subject,
+                l.Time,
+                l.Minutes,
+                l.Text
+            }),
+            absences = absences.Select(a => new {
+                a.Id,
+                a.StudentId,
+                a.Subject,
+                a.Time
+            })
+        });
+    }
+
+    // DELETE: api/attendance/diario/{studentId:int}
+    [HttpDelete("diario/{studentId:int}")]
+    public async Task<IActionResult> ClearDiario(int studentId, [FromQuery] DateTime? date)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+
+        var logs = await context.AttendanceLogs
+            .Where(l => l.StudentId == studentId && l.Date.Date == targetDate)
+            .ToListAsync();
+
+        var absences = await context.Absences
+            .Where(a => a.StudentId == studentId && a.Date.Date == targetDate)
+            .ToListAsync();
+
+        var fichajes = await context.Fichajes
+            .Where(f => f.StudentId == studentId && f.FechaHora.Date == targetDate)
+            .ToListAsync();
+
+        if (logs.Any()) context.AttendanceLogs.RemoveRange(logs);
+        if (absences.Any()) context.Absences.RemoveRange(absences);
+        if (fichajes.Any()) context.Fichajes.RemoveRange(fichajes);
+
+        await context.SaveChangesAsync();
+
+        return Ok(new { success = true, mensaje = $"Registros del alumno ID {studentId} para el día {targetDate:yyyy-MM-dd} eliminados con éxito." });
+    }
+
 }
 
 // ==========================================
@@ -581,4 +758,13 @@ public sealed class RegistrarEquipoAlumnoRequest
     public int StudentId { get; set; }
     public string NombreDispositivo { get; set; } = string.Empty;
     public string DireccionIP { get; set; } = string.Empty;
+}
+
+public sealed class AsistenciaManualRequest
+{
+    public int StudentId { get; set; }
+    public Guid SessionId { get; set; }
+    public string? Type { get; set; } // "Entrada", "Salida", "Retraso", "Falta"
+    public int? Minutes { get; set; }
+    public string? Text { get; set; }
 }

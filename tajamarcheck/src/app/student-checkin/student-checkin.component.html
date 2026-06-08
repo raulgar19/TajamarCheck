@@ -29,18 +29,30 @@
       </span>
     </div>
 
+    <!-- PANTALLA DE BLOQUEO PARA FICHAJE DESDE CASA -->
+    <div *ngIf="rondaActual && rondaActual.tipoClase === 'Casa'" class="w-full glass-card p-8 border border-amber-500/20 bg-amber-500/5 text-center space-y-4 rounded-3xl relative z-10">
+      <div class="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto shadow-lg shadow-amber-500/5 select-none animate-pulse">
+        🏠
+      </div>
+      <h3 class="text-lg font-black text-white">Clase desde Casa Activa</h3>
+      <p class="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+        El fichaje autónomo está **deshabilitado** para la sesión de hoy desde casa. 
+        El profesor registrará tu asistencia de forma manual durante la sesión virtual. No es necesario que fiches desde aquí.
+      </p>
+    </div>
+
     <!-- BOTONES DE FICHAJE PRINCIPALES -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-4 relative z-10">
+    <div *ngIf="!rondaActual || rondaActual.tipoClase !== 'Casa'" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-4 relative z-10">
       
       <!-- Entrada -->
-      <button (click)="fichar('Entrada')" [disabled]="loading || !rondaActual || rondaActual.tipoClase === 'Casa'"
+      <button (click)="fichar('Entrada')" [disabled]="loading || !rondaActual"
               class="py-6 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-40 text-white font-black text-sm rounded-2xl border-0 cursor-pointer shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 active:scale-95 transition duration-200 btn-interactive">
         <span class="text-2xl select-none">📥</span>
         <span>FICHAR ENTRADA</span>
       </button>
 
       <!-- Salida -->
-      <button (click)="fichar('Salida')" [disabled]="loading || !rondaActual || rondaActual.tipoClase === 'Casa'"
+      <button (click)="fichar('Salida')" [disabled]="loading || !rondaActual"
               class="py-6 px-6 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-40 text-white font-black text-sm rounded-2xl border-0 cursor-pointer shadow-lg shadow-indigo-500/20 flex flex-col items-center justify-center gap-2 active:scale-95 transition duration-200 btn-interactive">
         <span class="text-2xl select-none">📤</span>
         <span>FICHAR SALIDA</span>

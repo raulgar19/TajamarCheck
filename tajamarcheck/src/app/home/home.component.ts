@@ -54,6 +54,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   rondaTipo = 'Presencial'; // Default
   rondaPermitirCambioPC = false;
   rondasHistorial: any[] = [];
+  estudiantesEstado: any[] = [];
   
   // CRUD de Equipos
   equipos: any[] = [];
@@ -287,6 +288,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         if (ronda) {
           this.rondaTipo = ronda.tipoClase;
           this.rondaPermitirCambioPC = ronda.permitirCambioPC;
+          this.cargarEstadoAlumnosDiario();
+        } else {
+          this.estudiantesEstado = [];
         }
       },
       error: (err) => console.error('Error al cargar ronda actual:', err)
@@ -428,6 +432,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: () => {
           this.mostrarModalManual = false;
           alert('Falta registrada con éxito.');
+          this.cargarEstadoAlumnosDiario();
         },
         error: (err) => alert('Error al registrar falta: ' + err.message)
       });
@@ -445,6 +450,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: () => {
           this.mostrarModalManual = false;
           alert('Retraso registrado con éxito.');
+          this.cargarEstadoAlumnosDiario();
         },
         error: (err) => alert('Error al registrar retraso: ' + err.message)
       });
@@ -496,6 +502,136 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         alert('Error al registrar PC: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  cargarEstadoAlumnosDiario() {
+    this.studentService.getDiario().subscribe({
+      next: (res) => {
+        this.estudiantesEstado = this.estudiantesList.map(est => {
+          const studentLogs = res.logs.filter((l: any) => l.studentId === est.id);
+          const studentAbsence = res.absences.find((a: any) => a.studentId === est.id);
+
+          let estado = 'Sin Registrar';
+          let detalle = '';
+
+          if (studentAbsence) {
+            estado = 'Falta';
+            detalle = `Falta registrada a las ${studentAbsence.time}`;
+          } else if (studentLogs.length > 0) {
+            const tieneEntrada = studentLogs.some((l: any) => l.type === 'Entrada');
+            const tieneSalida = studentLogs.some((l: any) => l.type === 'Salida');
+            const retraso = studentLogs.find((l: any) => l.type === 'Retraso');
+
+            if (retraso) {
+              estado = 'Retraso';
+              detalle = `Retraso de ${retraso.minutes} min a las ${retraso.time}`;
+            } else if (tieneEntrada && tieneSalida) {
+              estado = 'Fichado (Completo)';
+              detalle = `Entrada y Salida registradas`;
+            } else if (tieneEntrada) {
+              estado = 'Fichado (Entrada)';
+              detalle = `Entrada registrada a las ${studentLogs.find((l: any) => l.type === 'Entrada').time}`;
+            } else if (tieneSalida) {
+              estado = 'Fichado (Salida)';
+              detalle = `Salida registrada a las ${studentLogs.find((l: any) => l.type === 'Salida').time}`;
+            }
+          }
+
+          return {
+            ...est,
+            estado,
+            detalle,
+            logs: studentLogs,
+            absence: studentAbsence
+          };
+        });
+      },
+      error: (err) => console.error('Error al cargar estado diario de alumnos:', err)
+    });
+  }
+
+  ficharManual(studentId: number, type: 'Entrada' | 'Salida') {
+    if (!this.rondaActual) return;
+    this.loading = true;
+    this.studentService.registrarAsistenciaManual({
+      studentId,
+      sessionId: this.rondaActual.id,
+      type
+    }).subscribe({
+      next: (res) => {
+        console.log(res.mensaje);
+        this.cargarEstadoAlumnosDiario();
+      },
+      error: (err) => {
+        this.loading = false;
+        alert('Error al realizar fichaje manual: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  ponerFaltaManual(studentId: number) {
+    if (!this.rondaActual) return;
+    this.loading = true;
+    this.studentService.registrarAsistenciaManual({
+      studentId,
+      sessionId: this.rondaActual.id,
+      type: 'Falta'
+    }).subscribe({
+      next: (res) => {
+        console.log(res.mensaje);
+        this.cargarEstadoAlumnosDiario();
+      },
+      error: (err) => {
+        this.loading = false;
+        alert('Error al registrar falta manual: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  ponerRetrasoManual(studentId: number) {
+    if (!this.rondaActual) return;
+    const minutesStr = prompt('Introduce los minutos del retraso:', '15');
+    if (minutesStr === null) return;
+    const minutes = parseInt(minutesStr, 10);
+    if (isNaN(minutes) || minutes <= 0) {
+      alert('Por favor introduce un número de minutos válido mayor a 0.');
+      return;
+    }
+
+    this.loading = true;
+    this.studentService.registrarAsistenciaManual({
+      studentId,
+      sessionId: this.rondaActual.id,
+      type: 'Retraso',
+      minutes: minutes,
+      text: `${minutes} min de retraso (Pase manual)`
+    }).subscribe({
+      next: (res) => {
+        console.log(res.mensaje);
+        this.cargarEstadoAlumnosDiario();
+      },
+      error: (err) => {
+        this.loading = false;
+        alert('Error al registrar retraso manual: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  limpiarRegistroManual(studentId: number) {
+    if (!confirm('¿Estás seguro de que deseas borrar los registros de asistencia de hoy para este estudiante?')) {
+      return;
+    }
+    this.loading = true;
+    this.studentService.clearDiario(studentId).subscribe({
+      next: (res) => {
+        console.log(res.mensaje);
+        this.cargarEstadoAlumnosDiario();
+      },
+      error: (err) => {
+        this.loading = false;
+        alert('Error al limpiar registros diarios: ' + (err.error?.message || err.message));
       }
     });
   }

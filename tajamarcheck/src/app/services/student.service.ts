@@ -35,4 +35,18 @@ export class StudentService {
       devHostname: devHostname
     });
   }
+
+  registrarAsistenciaManual(payload: { studentId: number; sessionId: string; type?: string; minutes?: number; text?: string }): Observable<any> {
+    return this.http.post<any>('/api/admin/asistencia-manual', payload);
+  }
+
+  getDiario(date?: string): Observable<any> {
+    const url = date ? `/api/attendance/diario?date=${date}` : '/api/attendance/diario';
+    return this.http.get<any>(url);
+  }
+
+  clearDiario(studentId: number, date?: string): Observable<any> {
+    const url = date ? `/api/attendance/diario/${studentId}?date=${date}` : `/api/attendance/diario/${studentId}`;
+    return this.http.delete<any>(url);
+  }
 }
