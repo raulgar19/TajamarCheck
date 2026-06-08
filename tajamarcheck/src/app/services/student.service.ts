@@ -28,16 +28,20 @@ export class StudentService {
     return this.http.get<any>('/api/attendance/ronda-actual');
   }
 
-  getFichajesSesionActual(): Observable<any> {
-    return this.http.get<any>('/api/attendance/fichajes/sesion-actual');
+  getRondas(): Observable<any[]> {
+    return this.http.get<any[]>('/api/attendance/rondas');
+  }
+
+  getAttendees(sessionId: string): Observable<any> {
+    return this.http.get<any>(`/api/attendance/rondas/${sessionId}/asistentes`);
   }
 
   getFichajesPorSesion(sessionId: string): Observable<any> {
     return this.http.get<any>(`/api/attendance/fichajes/sesion/${sessionId}`);
   }
 
-  getRondas(): Observable<any[]> {
-    return this.http.get<any[]>('/api/attendance/rondas');
+  detectarConexion(): Observable<any> {
+    return this.http.get<any>('/api/attendance/equipos/detectar-conexion');
   }
 
   ficharAlumno(studentId: number, type: string, devHostname?: string): Observable<any> {

@@ -75,7 +75,7 @@ export class SessionCheckinsComponent implements OnInit {
     this.selectedSessionId = targetSessionId;
 
     this.studentService.getFichajesPorSesion(targetSessionId).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.fichajes = res?.data || [];
         this.selectedSession = res?.session || null;
         if (res?.session?.id) {
@@ -83,7 +83,7 @@ export class SessionCheckinsComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: (err) => { this.error = err?.error?.message || err.message; this.loading = false; }
+      error: (err: any) => { this.error = err?.error?.message || err.message; this.loading = false; }
     });
   }
 

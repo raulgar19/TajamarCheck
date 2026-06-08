@@ -1,0 +1,127 @@
+<main class="w-full max-w-7xl mx-auto p-4 md:p-8 animate-fadeIn select-none">
+  <div class="glass-card card-accent-indigo p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <div class="space-y-2">
+      <div class="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+        Lista de asistencia por sesión
+      </div>
+      <div>
+        <h2 class="text-2xl md:text-3xl font-black tracking-tight">Rondas / Sesiones</h2>
+        <p class="text-xs md:text-sm text-slate-300 font-medium mt-1 max-w-2xl">
+          Abre una sesión para ver quién ha fichado. Si no aparecen asistentes, el sistema mostrará si hay registros en <span class="text-indigo-300 font-bold">Fichajes</span> o en <span class="text-indigo-300 font-bold">AttendanceLogs</span>.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 text-right">
+        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sesiones</div>
+        <div class="text-lg font-black text-white leading-none mt-1">{{ sessions.length }}</div>
+      </div>
+
+      <a routerLink="/home" class="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black text-slate-200 transition btn-interactive">
+        Volver al inicio
+      </a>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="glass-card card-accent-ruby p-4 mb-6 text-sm text-rose-200">
+    {{ errorMessage }}
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <section class="xl:col-span-4 glass-card p-5 md:p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-black">Sesiones recientes</h3>
+          <p class="text-xs text-slate-400 mt-1">Selecciona una sesión para cargar la lista de asistentes.</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+        <button
+          *ngFor="let s of sessions"
+          type="button"
+          (click)="selectSession(s)"
+          class="session-item w-full text-left p-4 rounded-2xl border transition btn-interactive"
+          [ngClass]="isSelectedSession(s) ? 'bg-indigo-500/10 border-indigo-500/25 shadow-lg shadow-indigo-500/5' : 'bg-white/3 border-white/5 hover:bg-white/5'">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+              <div class="text-sm font-black text-white tracking-tight">{{ getSessionDate(s) | date:'dd MMM yyyy' }}</div>
+              <div class="text-[11px] text-slate-300 font-semibold uppercase tracking-widest">{{ getSessionType(s) }}</div>
+            </div>
+
+            <div class="flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="isSelectedSession(s) ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/20' : 'bg-white/5 text-slate-400 border border-white/5'">
+              {{ isSelectedSession(s) ? 'Activa' : 'Abrir' }}
+            </div>
+          </div>
+        </button>
+
+        <div *ngIf="!loading && sessions.length === 0" class="rounded-2xl border border-dashed border-white/10 bg-white/3 p-5 text-sm text-slate-400">
+          No hay sesiones para mostrar.
+        </div>
+      </div>
+    </section>
+
+    <section class="xl:col-span-8 glass-card p-5 md:p-6">
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+        <div>
+          <h3 class="text-lg font-black">Asistentes</h3>
+          <p class="text-xs text-slate-400 mt-1">Resumen de fichajes de la sesión seleccionada.</p>
+        </div>
+
+        <div *ngIf="selectedSession" class="flex gap-3 flex-wrap">
+          <div class="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+            <div class="text-[10px] uppercase tracking-widest font-black text-emerald-300">Registros</div>
+            <div class="text-lg font-black text-white leading-none mt-1">{{ attendees.length }}</div>
+          </div>
+          <div class="px-4 py-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+            <div class="text-[10px] uppercase tracking-widest font-black text-indigo-300">Sesión</div>
+            <div class="text-sm font-black text-white leading-none mt-1">{{ getSessionType(selectedSession) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!selectedSession" class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center text-slate-400">
+        Selecciona una sesión a la izquierda para ver los asistentes.
+      </div>
+
+      <div *ngIf="selectedSession && !loading && attendees.length === 0" class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center">
+        <div class="text-sm font-bold text-white">Sin registros para esta sesión</div>
+        <p class="text-xs text-slate-400 mt-2">Si esperabas datos, comprueba que existan fichajes en la fecha de la sesión o en <span class="text-indigo-300 font-bold">AttendanceLogs</span>.</p>
+      </div>
+
+      <div *ngIf="loading" class="rounded-3xl border border-white/5 bg-white/3 p-8 text-center text-slate-400">
+        Cargando asistentes...
+      </div>
+
+      <div *ngIf="selectedSession && attendees.length > 0" class="overflow-x-auto rounded-3xl border border-white/5 bg-slate-950/30">
+        <table class="w-full text-left text-sm attendees-table">
+          <thead class="bg-white/3 text-slate-400 text-[10px] uppercase tracking-widest">
+            <tr>
+              <th class="px-4 py-3">Alumno</th>
+              <th class="px-4 py-3">Fecha / Hora</th>
+              <th class="px-4 py-3">Fuente</th>
+              <th class="px-4 py-3">Método</th>
+              <th class="px-4 py-3">IP</th>
+              <th class="px-4 py-3">Hostname</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of attendees" class="border-t border-white/5 hover:bg-white/3 transition">
+              <td class="px-4 py-4 font-black text-white">{{ a.studentId }}</td>
+              <td class="px-4 py-4 text-slate-300">{{ a.fechaHora | date:'short' }}</td>
+              <td class="px-4 py-4">
+                <span class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="a.source === 'Fichaje' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'">
+                  {{ a.source }}
+                </span>
+              </td>
+              <td class="px-4 py-4 text-slate-300">{{ a.metodo || a.tipo || '-' }}</td>
+              <td class="px-4 py-4 text-slate-300">{{ a.ip || '-' }}</td>
+              <td class="px-4 py-4 text-slate-300">{{ a.hostname || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>

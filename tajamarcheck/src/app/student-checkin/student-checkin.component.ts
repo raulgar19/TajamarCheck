@@ -26,8 +26,7 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
   checkinStatus: 'idle' | 'success' | 'error' = 'idle';
   statusMessage = '';
   
-  // Dev override for local testing of Hostnames
-  devHostname = 'AULA-LOCAL-PC';
+
 
   constructor(
     private authService: AuthService,
@@ -88,19 +87,33 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
     this.checkinStatus = 'idle';
     this.statusMessage = '';
 
-    console.log(`Fichando ${type} para alumno ${this.studentId} con PC local de pruebas ${this.devHostname}`);
+    console.log(`Detectando IP y Hostname de forma automática...`);
 
-    this.studentService.ficharAlumno(this.studentId, type, this.devHostname).subscribe({
-      next: (res) => {
-        this.loading = false;
-        this.checkinStatus = 'success';
-        this.statusMessage = `¡Fichaje de ${type} realizado con éxito! Registrado desde ${res.hostname} (${res.ip}).`;
+    this.studentService.detectarConexion().subscribe({
+      next: (conn: any) => {
+        const detectedHostname = conn.hostname || '';
+        const detectedIp = conn.ip || '';
+        console.log(`Conexión detectada -> IP: ${detectedIp}, Hostname: ${detectedHostname}`);
+
+        this.studentService.ficharAlumno(this.studentId, type, detectedHostname).subscribe({
+          next: (res: any) => {
+            this.loading = false;
+            this.checkinStatus = 'success';
+            this.statusMessage = `¡Fichaje de ${type} realizado con éxito! Registrado desde ${res.hostname} (${res.ip}).`;
+          },
+          error: (err: any) => {
+            this.loading = false;
+            this.checkinStatus = 'error';
+            this.statusMessage = err.error?.message || 'Error al conectar con la base de datos o validar el equipo.';
+            console.error('Error en ficharAlumno():', err);
+          }
+        });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.loading = false;
         this.checkinStatus = 'error';
-        this.statusMessage = err.error?.message || 'Error al conectar con la base de datos o validar el equipo.';
-        console.error('Error en fichar():', err);
+        this.statusMessage = 'No se pudo detectar la conexión de tu equipo. Verifica tu red.';
+        console.error('Error en detectarConexion():', err);
       }
     });
   }

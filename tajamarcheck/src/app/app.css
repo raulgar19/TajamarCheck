@@ -116,6 +116,10 @@ h1, h2, h3, h4, h5, h6 {
   border-left: 3px solid #f59e0b !important;
 }
 
+.card-accent-indigo {
+  border-left: 3px solid #6366f1 !important;
+}
+
 /* DYNAMIC HOVER EFFECTS FOR BUTTONS */
 .btn-interactive {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);

@@ -1,0 +1,168 @@
+<main class="w-full max-w-7xl mx-auto p-4 md:p-8 animate-fadeIn select-none">
+  
+  <!-- BOTÓN VOLVER ATRÁS -->
+  <div class="mb-6">
+    <a routerLink="/home" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white border border-white/10 rounded-xl transition decoration-none btn-interactive shadow-md hover:shadow-indigo-500/5">
+      ◀ Volver al Inicio
+    </a>
+  </div>
+
+  <!-- CABECERA DEL LISTADO -->
+  <div class="mb-8 space-y-2">
+    <div class="inline-flex items-center px-3 py-1 bg-indigo-500/10 border border-indigo-500/25 rounded-lg text-[10px] font-black text-indigo-400 tracking-wider uppercase shadow-md">
+      Historial del Alumno
+    </div>
+    <h2 class="text-3xl md:text-4xl font-black tracking-tight text-glow-gradient leading-tight">Mi Historial de Asistencia</h2>
+    <p class="text-slate-400 text-xs md:text-sm font-semibold max-w-2xl leading-relaxed">
+      Consulta el detalle completo de todas tus faltas de asistencia y retrasos acumulados en el curso.
+    </p>
+  </div>
+
+  <!-- TARJETAS DE MÉTRICAS RÁPIDAS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    
+    <!-- Porcentaje de Asistencia -->
+    <div class="glass-card card-accent-emerald p-6 flex items-center justify-between">
+      <div>
+        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Porcentaje Asistencia</span>
+        <h2 class="text-3xl md:text-4xl font-black text-white tracking-tight mt-1">{{ attendancePercentage }}%</h2>
+        <span class="text-[10px] font-semibold text-emerald-400 mt-1 block">✓ Asistencia regular requerida (85%)</span>
+      </div>
+      <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center text-xl font-bold border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+        📈
+      </div>
+    </div>
+
+    <!-- Faltas Totales -->
+    <div class="glass-card card-accent-ruby p-6 flex items-center justify-between">
+      <div>
+        <span class="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Faltas Totales</span>
+        <h2 class="text-3xl md:text-4xl font-black text-rose-500 tracking-tight mt-1">{{ absencesCount }}</h2>
+        <span class="text-[10px] font-semibold text-slate-400 mt-1 block">Faltas acumuladas en el curso</span>
+      </div>
+      <div class="w-14 h-14 bg-rose-500/10 text-rose-400 rounded-2xl flex items-center justify-center text-xl font-bold border border-rose-500/20 shadow-lg shadow-rose-500/5">
+        ❌
+      </div>
+    </div>
+
+    <!-- Retrasos Totales -->
+    <div class="glass-card card-accent-amber p-6 flex items-center justify-between">
+      <div>
+        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Retrasos Totales</span>
+        <h2 class="text-3xl md:text-4xl font-black text-amber-500 tracking-tight mt-1">{{ delaysCount }}</h2>
+        <span class="text-[10px] font-semibold text-slate-400 mt-1 block">Llegadas tarde registradas</span>
+      </div>
+      <div class="w-14 h-14 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center text-xl font-bold border border-amber-500/20 shadow-lg shadow-amber-500/5">
+        ⚠️
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+  <div class="glass-card p-6 mb-8">
+    <div class="flex flex-col md:flex-row md:items-end gap-4">
+      
+      <!-- Búsqueda por asignatura -->
+      <div class="flex-1 flex flex-col">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Buscar por asignatura</label>
+        <input type="text" [(ngModel)]="filterSubject" (ngModelChange)="applyFilters()" placeholder="Ej. Programación .NET Core, Matemáticas..."
+               class="w-full px-4 py-3 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-white font-semibold bg-white/5" />
+      </div>
+
+      <!-- Filtrado por tipo -->
+      <div class="flex flex-col w-full md:w-56">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Filtrar por tipo</label>
+        <select [(ngModel)]="filterType" (change)="applyFilters()" 
+                class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer font-bold">
+          <option value="all">Todas las incidencias</option>
+          <option value="absence">Solo Faltas (F)</option>
+          <option value="delay">Solo Retrasos (R)</option>
+        </select>
+      </div>
+
+      <!-- Limpiar filtros -->
+      <div class="w-full md:w-auto">
+        <button (click)="clearFilters()" class="w-full md:w-auto px-5 py-3 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs font-black rounded-xl transition cursor-pointer active:scale-95 whitespace-nowrap btn-interactive">
+          Limpiar Filtros
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LISTADO DETALLADO -->
+  <div class="space-y-4">
+    
+    <!-- Estado: Cargando -->
+    <div *ngIf="loading" class="glass-card p-12 text-center text-slate-400 font-semibold text-sm">
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <span>Cargando tu historial de asistencia...</span>
+      </div>
+    </div>
+
+    <!-- Estado: Sin Incidencias -->
+    <div *ngIf="!loading && filteredIncidences.length === 0" class="glass-card p-12 text-center border-2 border-dashed border-white/10">
+      <div class="max-w-md mx-auto space-y-3">
+        <div class="text-4xl">🎉</div>
+        <h3 class="text-lg font-black text-white">Sin incidencias</h3>
+        <p class="text-xs text-slate-450 font-semibold leading-relaxed">
+          {{ filterSubject || filterType !== 'all' ? 'No se encontraron incidencias para los filtros aplicados. Intenta cambiar tu búsqueda.' : '¡Excelente trabajo! No tienes faltas de asistencia ni retrasos registrados en tu historial.' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Lista de Incidencias -->
+    <div *ngIf="!loading && filteredIncidences.length > 0" class="space-y-4">
+      <div *ngFor="let inc of filteredIncidences" 
+           class="glass-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition duration-200"
+           [ngClass]="{
+             'card-accent-ruby bg-rose-500/5 hover:bg-rose-500/10 border-rose-500/15': inc.type === 'Falta',
+             'card-accent-amber bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/15': inc.type === 'Retraso'
+           }">
+        
+        <!-- Detalles Principales (Icono + Asignatura/Info) -->
+        <div class="flex items-center gap-4">
+          <!-- Icono / Badge de tipo -->
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shadow-lg"
+               [ngClass]="{
+                 'bg-rose-500 text-white shadow-rose-500/10 border border-rose-400/20': inc.type === 'Falta',
+                 'bg-amber-500 text-white shadow-amber-500/10 border border-amber-400/20': inc.type === 'Retraso'
+               }">
+            {{ inc.type === 'Falta' ? 'F' : 'R' }}
+          </div>
+          
+          <!-- Asignatura y fecha/hora -->
+          <div class="space-y-1">
+            <h4 class="text-sm font-black text-slate-100 leading-tight">{{ inc.subject }}</h4>
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-slate-450 uppercase tracking-wider">
+              <span>📅 {{ inc.date | date:'dd LLL yyyy' }}</span>
+              <span class="text-slate-600">•</span>
+              <span>⏰ {{ inc.time }}</span>
+              <span *ngIf="inc.type === 'Retraso'" class="text-slate-600">•</span>
+              <span *ngIf="inc.type === 'Retraso'" class="text-amber-400 font-black">⚠️ {{ inc.minutes }} minutos tarde</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notas / Comentarios del Fichaje o Falta -->
+        <div class="flex items-center justify-between md:justify-end gap-3 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+          <span class="text-xs text-slate-400 font-semibold italic max-w-sm text-left md:text-right">
+            {{ inc.text }}
+          </span>
+          <span class="text-[9px] font-black px-2.5 py-1.5 rounded-lg border whitespace-nowrap"
+                [ngClass]="{
+                  'bg-rose-500/10 text-rose-400 border-rose-500/20': inc.type === 'Falta',
+                  'bg-amber-500/10 text-amber-400 border-amber-500/20': inc.type === 'Retraso'
+                }">
+            {{ inc.type === 'Falta' ? 'FALTA' : 'RETRASO' }}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</main>

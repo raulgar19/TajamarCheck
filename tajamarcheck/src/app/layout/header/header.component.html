@@ -16,8 +16,8 @@
   <!-- CONTROLES Y PERFIL DEL CABECERO (Solo si está logueado) -->
   <div class="flex items-center gap-3" *ngIf="authService.isLoggedIn()">
     
-    <!-- Botón Rápido de Inicio (Visible si está en Fichar o Perfil) -->
-    <a *ngIf="isFicharPage() || isProfilePage()" 
+    <!-- Botón Rápido de Inicio (Visible si está en Fichar, Perfil, Asistencia, Rondas o Fichajes) -->
+    <a *ngIf="isFicharPage() || isProfilePage() || isAsistenciaPage() || isRondasPage() || isFichajesPage()" 
        routerLink="/home" 
        class="hidden sm:inline-flex items-center px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs font-bold rounded-xl transition decoration-none active:scale-95 hover:shadow-lg hover:shadow-indigo-500/5">
       Inicio
@@ -70,6 +70,12 @@
         <a routerLink="/perfil" (click)="closeDropdown()" 
            class="flex items-center px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition decoration-none cursor-pointer">
           <span>Mi Perfil</span>
+        </a>
+
+        <!-- Opción: Mi Asistencia -->
+        <a *ngIf="role === 'alumno'" routerLink="/asistencia" (click)="closeDropdown()" 
+           class="flex items-center px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition decoration-none cursor-pointer">
+          <span>Mi Asistencia</span>
         </a>
 
         <!-- Opción: Ver fichajes de sesiones (profesores) -->

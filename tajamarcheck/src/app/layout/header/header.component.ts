@@ -52,6 +52,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
     return this.router.url.includes('/perfil');
   }
 
+  isAsistenciaPage(): boolean {
+    return this.router.url.includes('/asistencia');
+  }
+
+  isRondasPage(): boolean {
+    return this.router.url.includes('/rondas');
+  }
+
+  isFichajesPage(): boolean {
+    return this.router.url.includes('/sesiones/fichajes');
+  }
+
   toggleDropdown(event: Event) {
     event.stopPropagation();
     this.isDropdownOpen = !this.isDropdownOpen;
