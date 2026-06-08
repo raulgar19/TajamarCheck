@@ -1,0 +1,44 @@
+<div class="p-6">
+  <h2 class="text-lg font-bold mb-4">Rondas / Sesiones</h2>
+
+  <div *ngIf="loading">Cargando...</div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="col-span-1">
+      <ul>
+        <li *ngFor="let s of sessions" class="mb-2">
+          <button (click)="selectSession(s)" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10">
+            <div class="font-bold">{{ s.fecha ? (s.fecha | date:'mediumDate') : (s.fechaHora ? (s.fechaHora | date:'mediumDate') : s.fecha) }}</div>
+            <div class="text-xs text-slate-300">{{ s.tipoClase || s.tipoClase }}</div>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="col-span-2">
+      <h3 class="font-semibold">Asistentes</h3>
+      <div *ngIf="!selectedSession" class="text-sm text-slate-400 mt-2">Selecciona una sesión a la izquierda.</div>
+
+      <table *ngIf="selectedSession" class="w-full mt-3 table-auto text-left text-sm">
+        <thead>
+          <tr>
+            <th class="pr-4">AlumnoId</th>
+            <th class="pr-4">FechaHora</th>
+            <th class="pr-4">Método</th>
+            <th class="pr-4">IP</th>
+            <th class="pr-4">Hostname</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of attendees">
+            <td>{{ a.studentId }}</td>
+            <td>{{ a.fechaHora | date:'short' }}</td>
+            <td>{{ a.metodo }}</td>
+            <td>{{ a.ip }}</td>
+            <td>{{ a.hostname }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

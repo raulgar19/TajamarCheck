@@ -706,6 +706,36 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         });
     }
 
+    // GET: api/attendance/rondas/{sessionId}/asistentes
+    [HttpGet("rondas/{sessionId:guid}/asistentes")]
+    public async Task<IActionResult> GetAsistentesPorSesion(Guid sessionId)
+    {
+        var session = await context.Sesiones.FindAsync(sessionId);
+        if (session == null)
+        {
+            return NotFound(new { success = false, message = "Sesión no encontrada." });
+        }
+
+        var targetDate = session.Fecha.Date;
+
+        // Dado que el esquema actual no relaciona Fichajes con Sesiones directamente,
+        // usamos la fecha de la sesión como criterio para agrupar fichajes del día.
+        var asistentes = await context.Fichajes
+            .Where(f => f.FechaHora.Date == targetDate)
+            .OrderBy(f => f.FechaHora)
+            .Select(f => new {
+                id = f.Id,
+                studentId = f.StudentId,
+                fechaHora = f.FechaHora,
+                metodo = f.Metodo,
+                ip = f.IpDetectada,
+                hostname = f.HostnameDetectado
+            })
+            .ToListAsync();
+
+        return Ok(new { success = true, session = sessionId, date = targetDate, attendees = asistentes });
+    }
+
     // DELETE: api/attendance/diario/{studentId:int}
     [HttpDelete("diario/{studentId:int}")]
     public async Task<IActionResult> ClearDiario(int studentId, [FromQuery] DateTime? date)
