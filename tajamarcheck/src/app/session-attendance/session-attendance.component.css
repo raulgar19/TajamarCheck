@@ -1,3 +1,8 @@
-.selected { background-color: rgba(255,255,255,0.06); }
+/* Session attendance styles */
+.session-list button { transition: all .15s ease; }
+.session-list button:hover { transform: translateY(-2px); }
+.attendees-table tr:hover { background: rgba(255,255,255,0.02); }
 table th { font-weight: 700; }
-table td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+.selected { background-color: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79,70,229,0.18); }

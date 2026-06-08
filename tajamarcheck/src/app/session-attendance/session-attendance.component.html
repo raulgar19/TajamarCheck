@@ -1,44 +1,61 @@
 <div class="p-6">
-  <h2 class="text-lg font-bold mb-4">Rondas / Sesiones</h2>
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-black">Rondas / Sesiones</h2>
+      <p class="text-xs text-slate-400">Selecciona una sesión para ver quién ha fichado.</p>
+    </div>
+    <div *ngIf="loading" class="text-sm text-slate-400">Cargando...</div>
+  </div>
 
-  <div *ngIf="loading">Cargando...</div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="col-span-1">
-      <ul>
-        <li *ngFor="let s of sessions" class="mb-2">
-          <button (click)="selectSession(s)" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10">
-            <div class="font-bold">{{ s.fecha ? (s.fecha | date:'mediumDate') : (s.fechaHora ? (s.fechaHora | date:'mediumDate') : s.fecha) }}</div>
-            <div class="text-xs text-slate-300">{{ s.tipoClase || s.tipoClase }}</div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Sessions list -->
+    <div class="col-span-1 bg-slate-900/40 p-4 rounded-2xl border border-white/5 max-h-[420px] overflow-y-auto">
+      <ul class="space-y-2">
+        <li *ngFor="let s of sessions" class="">
+          <button (click)="selectSession(s)" class="w-full text-left p-3 rounded-xl transition flex items-center justify-between hover:scale-[1.01]" [ngClass]="{'bg-indigo-600/10 border border-indigo-600/20': selectedSession && (selectedSession.id==s.id || selectedSession.Id==s.Id)}">
+            <div>
+              <div class="text-sm font-bold text-white">{{ s.fecha ? (s.fecha | date:'dd MMM yyyy') : (s.fechaHora ? (s.fechaHora | date:'dd MMM yyyy') : s.fecha) }}</div>
+              <div class="text-[11px] text-slate-300 mt-0.5">{{ s.tipoClase || s.tipoClase }}</div>
+            </div>
+            <div class="text-xs text-slate-400">Ver</div>
           </button>
         </li>
       </ul>
     </div>
 
-    <div class="col-span-2">
-      <h3 class="font-semibold">Asistentes</h3>
-      <div *ngIf="!selectedSession" class="text-sm text-slate-400 mt-2">Selecciona una sesión a la izquierda.</div>
+    <!-- Attendees -->
+    <div class="col-span-2 bg-slate-900/40 p-4 rounded-2xl border border-white/5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-bold">Asistentes</h3>
+        <div *ngIf="selectedSession" class="text-xs text-slate-400">Sesión: {{ selectedSession.fecha ? (selectedSession.fecha | date:'dd MMM yyyy') : (selectedSession.Fecha | date:'dd MMM yyyy') }}</div>
+      </div>
 
-      <table *ngIf="selectedSession" class="w-full mt-3 table-auto text-left text-sm">
-        <thead>
-          <tr>
-            <th class="pr-4">AlumnoId</th>
-            <th class="pr-4">FechaHora</th>
-            <th class="pr-4">Método</th>
-            <th class="pr-4">IP</th>
-            <th class="pr-4">Hostname</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let a of attendees">
-            <td>{{ a.studentId }}</td>
-            <td>{{ a.fechaHora | date:'short' }}</td>
-            <td>{{ a.metodo }}</td>
-            <td>{{ a.ip }}</td>
-            <td>{{ a.hostname }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div *ngIf="!selectedSession" class="text-sm text-slate-400 mt-2">Selecciona una sesión a la izquierda para ver la lista de asistentes.</div>
+
+      <div *ngIf="selectedSession && attendees.length === 0" class="text-sm text-slate-400 mt-4">No hay fichajes registrados para esta sesión.</div>
+
+      <div *ngIf="attendees.length > 0" class="overflow-x-auto mt-3">
+        <table class="w-full table-auto text-left text-sm">
+          <thead>
+            <tr class="text-slate-400 text-xs uppercase tracking-wider">
+              <th class="px-3 py-2">Alumno</th>
+              <th class="px-3 py-2">Fecha / Hora</th>
+              <th class="px-3 py-2">Método</th>
+              <th class="px-3 py-2">IP</th>
+              <th class="px-3 py-2">Hostname</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of attendees" class="border-t border-white/3 hover:bg-white/2 transition">
+              <td class="px-3 py-2 font-bold">{{ a.studentId }}</td>
+              <td class="px-3 py-2">{{ a.fechaHora | date:'short' }}</td>
+              <td class="px-3 py-2">{{ a.metodo }}</td>
+              <td class="px-3 py-2">{{ a.ip }}</td>
+              <td class="px-3 py-2">{{ a.hostname }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

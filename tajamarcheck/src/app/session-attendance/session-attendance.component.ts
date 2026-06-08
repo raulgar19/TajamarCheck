@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { StudentService } from '../services/student.service';
@@ -25,7 +26,8 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private studentService: StudentService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
@@ -43,6 +45,21 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
     }
 
     this.loadSessions();
+
+    // Si viene sessionId por query params, seleccionarla cuando se carguen las sesiones
+    this.route.queryParams.subscribe(params => {
+      const sid = params['sessionId'] as string | undefined;
+      if (sid) {
+        // Si ya hay sesiones cargadas, intentar seleccionar, si no, se seleccionará tras la carga
+        if (this.sessions && this.sessions.length > 0) {
+          const found = this.sessions.find(s => (s.id || s.Id || s.Id) == sid);
+          if (found) this.selectSession(found);
+        } else {
+          // esperar a que loadSessions haga el trabajo (loadSessions ya pone sessions)
+          // aquí no hacemos nada extra; loadSessions llamará a select cuando el usuario haga click
+        }
+      }
+    });
 
     this.authSub = this.authService.authState$.subscribe((s: AuthState) => {
       if (!s.isLoggedIn) {
@@ -63,6 +80,12 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
       next: (list) => {
         this.sessions = list || [];
         this.loading = false;
+        // Si venimos con sessionId en query params, intentar seleccionar automáticamente
+        const sid = this.route.snapshot.queryParams['sessionId'] as string | undefined;
+        if (sid) {
+          const found = this.sessions.find(s => (s.id || s.Id) == sid);
+          if (found) this.selectSession(found);
+        }
       },
       error: (err) => {
         console.error('Error cargando rondas:', err);
