@@ -271,7 +271,8 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             EquipoId = device.Id,
             Metodo = "Automatico_Alumno",
             IpDetectada = clientIp,
-            HostnameDetectado = clientHostname
+            HostnameDetectado = clientHostname,
+            IdSesion = round.Id
         };
         context.Fichajes.Add(fichaje);
 
@@ -302,6 +303,45 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     // ==========================================
     // NEW DEVICE WHITELIST CRUD ENDPOINTS
     // ==========================================
+
+    // GET: api/attendance/fichajes/sesion/{sessionId}
+    [HttpGet("fichajes/sesion/{sessionId:guid}")]
+    public async Task<IActionResult> GetFichajesPorSesion(Guid sessionId)
+    {
+        var sesion = await context.Sesiones.FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (sesion == null)
+        {
+            return NotFound(new { success = false, message = "Sesión no encontrada." });
+        }
+
+        var fichajes = await context.Fichajes
+            .Where(f => f.IdSesion == sessionId)
+            .Include(f => f.Equipo)
+            .OrderByDescending(f => f.FechaHora)
+            .ToListAsync();
+
+        return Ok(new { success = true, session = sesion, data = fichajes });
+    }
+
+    // GET: api/attendance/fichajes/sesion-actual
+    [HttpGet("fichajes/sesion-actual")]
+    public async Task<IActionResult> GetFichajesSesionActual()
+    {
+        var today = DateTime.Today;
+        var ronda = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        if (ronda == null)
+        {
+            return NotFound(new { success = false, message = "No hay sesión abierta para hoy." });
+        }
+
+        var fichajes = await context.Fichajes
+            .Where(f => f.IdSesion == ronda.Id)
+            .Include(f => f.Equipo)
+            .OrderByDescending(f => f.FechaHora)
+            .ToListAsync();
+
+        return Ok(new { success = true, session = ronda, data = fichajes });
+    }
 
 
 

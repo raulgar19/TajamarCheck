@@ -48,5 +48,7 @@ CREATE TABLE Fichajes (
     Metodo NVARCHAR(50) NOT NULL CHECK (Metodo IN ('Automatico_Alumno', 'Manual_Profesor')),
     IpDetectada NVARCHAR(50) NOT NULL,
     HostnameDetectado NVARCHAR(150) NOT NULL,
-    CONSTRAINT FK_Fichajes_Equipos FOREIGN KEY (EquipoId) REFERENCES EquiposAutorizados(Id)
+    IdSesion UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT FK_Fichajes_Equipos FOREIGN KEY (EquipoId) REFERENCES EquiposAutorizados(Id),
+    CONSTRAINT FK_Fichajes_Sesiones FOREIGN KEY (IdSesion) REFERENCES Sesiones(Id)
 );

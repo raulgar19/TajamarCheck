@@ -28,6 +28,18 @@ export class StudentService {
     return this.http.get<any>('/api/attendance/ronda-actual');
   }
 
+  getFichajesSesionActual(): Observable<any> {
+    return this.http.get<any>('/api/attendance/fichajes/sesion-actual');
+  }
+
+  getFichajesPorSesion(sessionId: string): Observable<any> {
+    return this.http.get<any>(`/api/attendance/fichajes/sesion/${sessionId}`);
+  }
+
+  getRondas(): Observable<any[]> {
+    return this.http.get<any[]>('/api/attendance/rondas');
+  }
+
   ficharAlumno(studentId: number, type: string, devHostname?: string): Observable<any> {
     return this.http.post<any>('/api/attendance/fichar/alumno', {
       studentId: studentId,
