@@ -461,33 +461,6 @@
       </div>
 
       <!-- HISTORIAL RONDAS (5 COLUMNAS) -->
-      <div class="lg:col-span-5 glass-card p-6">
-        <div class="select-none mb-6">
-          <h3 class="text-lg font-black text-white">Rondas de Asistencia Recientes</h3>
-          <p class="text-xs text-slate-400 font-semibold mt-0.5">Historial de rondas diarias abiertas por profesores</p>
-        </div>
-        
-        <div class="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-          <div *ngFor="let rond of rondasHistorial" class="border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/5 transition duration-200 bg-white/2 shadow-sm">
-            <div class="flex items-center gap-3">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black tracking-widest uppercase border"
-                    [ngClass]="rond.tipoClase === 'Presencial' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'">
-                {{ rond.tipoClase === 'Presencial' ? 'Presencial' : 'Distancia' }}
-              </span>
-              <div>
-                <h4 class="text-xs font-black text-slate-200 leading-none">
-                  Fichaje {{ rond.tipoClase === 'Presencial' ? 'en Aula' : 'desde Casa' }}
-                </h4>
-                <span class="text-[10px] font-bold text-slate-500 mt-1.5 block">Curso: Curso {{ rond.cursoId }}</span>
-              </div>
-            </div>
-            <span class="text-[10px] font-black text-slate-400 bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-lg whitespace-nowrap">{{ rond.fecha | date:'dd MMM yyyy' }}</span>
-          </div>
-          <div *ngIf="rondasHistorial.length === 0" class="text-center py-10 text-xs font-bold text-slate-400">
-            No se han registrado rondas de asistencia anteriormente.
-          </div>
-        </div>
-      </div>
 
     </div>
 

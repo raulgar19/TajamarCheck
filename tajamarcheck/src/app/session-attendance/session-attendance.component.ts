@@ -19,6 +19,7 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
   selectedSession: any = null;
   attendees: any[] = [];
   loading = false;
+  errorMessage = '';
   username = '';
   role = '';
   private authSub?: Subscription;
@@ -76,6 +77,7 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
 
   loadSessions() {
     this.loading = true;
+    this.errorMessage = '';
     this.studentService.getRondas().subscribe({
       next: (list) => {
         this.sessions = list || [];
@@ -89,6 +91,7 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error cargando rondas:', err);
+        this.errorMessage = 'No se han podido cargar las rondas de asistencia.';
         this.loading = false;
       }
     });
@@ -96,22 +99,41 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
 
   selectSession(s: any) {
     this.selectedSession = s;
-    this.loadAttendees(s.id || s.Id || s.id);
+    this.loadAttendees(this.getSessionId(s));
   }
 
   loadAttendees(sessionId: string) {
     if (!sessionId) return;
     this.attendees = [];
     this.loading = true;
+    this.errorMessage = '';
     this.studentService.getAttendees(sessionId).subscribe({
       next: (res) => {
-        this.attendees = res?.attendees || res?.data || [];
+        this.attendees = Array.isArray(res?.attendees) ? res.attendees : [];
         this.loading = false;
       },
       error: (err) => {
         console.error('Error cargando asistentes:', err);
+        this.errorMessage = err?.error?.message || 'No se han podido cargar los asistentes de esta sesión.';
         this.loading = false;
       }
     });
+  }
+
+  getSessionId(session: any): string {
+    return session?.id || session?.Id || '';
+  }
+
+  getSessionDate(session: any): Date | string | null {
+    return session?.fecha || session?.Fecha || session?.fechaHora || session?.FechaHora || null;
+  }
+
+  getSessionType(session: any): string {
+    return session?.tipoClase || session?.TipoClase || 'Sesión';
+  }
+
+  isSelectedSession(session: any): boolean {
+    if (!this.selectedSession || !session) return false;
+    return this.getSessionId(this.selectedSession) === this.getSessionId(session);
   }
 }
