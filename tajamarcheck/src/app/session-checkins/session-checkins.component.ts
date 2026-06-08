@@ -90,4 +90,16 @@ export class SessionCheckinsComponent implements OnInit {
   get uniqueStudentsCount(): number {
     return new Set(this.fichajes.map(f => f.studentId)).size;
   }
+
+  getStudentName(studentId: any): string {
+    const idNum = Number(studentId);
+    const students: { [key: number]: string } = {
+      1: 'Raúl García',
+      2: 'Sofia Martín',
+      3: 'Carlos Gomez',
+      4: 'Ana Belén Ortiz',
+      101: 'Estudiante Tajamar (Pruebas)'
+    };
+    return students[idNum] || `Alumno #${studentId}`;
+  }
 }

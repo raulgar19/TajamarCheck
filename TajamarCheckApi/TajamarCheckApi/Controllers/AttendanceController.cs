@@ -15,16 +15,27 @@ namespace TajamarCheckApi.Controllers;
 public sealed class AttendanceController(ApplicationDbContext context) : ControllerBase
 {
     // ==========================================
-    // LEGACY ENDPOINTS (Preserved & Extended)
+    // LEGACY & COMPATIBILITY ENDPOINTS (Alumnos)
     // ==========================================
 
     // GET: api/attendance/absences/{studentId}
     [HttpGet("absences/{studentId:int}")]
     public async Task<IActionResult> GetAbsences(int studentId)
     {
-        var absences = await context.Absences
-            .Where(a => a.StudentId == studentId)
-            .OrderByDescending(a => a.Date)
+        var absences = await context.Asistencias
+            .Include(a => a.Sesion)
+            .Where(a => a.IdUsuario == studentId && a.EstadoAsistencia == "Falta")
+            .OrderByDescending(a => a.HoraFichaje)
+            .Select(a => new
+            {
+                id = a.IdAsistencia,
+                studentId = a.IdUsuario,
+                subject = a.Sesion != null ? $"Asistencia ({a.Sesion.TipoSesion})" : "Asistencia Clase",
+                date = a.Sesion != null ? a.Sesion.Fecha : a.HoraFichaje.Date,
+                time = a.HoraFichaje.ToString("HH:mm"),
+                justificacion = a.Justificacion,
+                estaJustificada = a.EstaJustificada
+            })
             .ToListAsync();
 
         return Ok(absences);
@@ -34,105 +45,30 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     [HttpGet("logs/{studentId:int}")]
     public async Task<IActionResult> GetLogs(int studentId)
     {
-        var logs = await context.AttendanceLogs
-            .Where(l => l.StudentId == studentId)
-            .OrderByDescending(l => l.Date)
-            .ThenByDescending(l => l.CreatedAt)
+        var logs = await context.Asistencias
+            .Include(a => a.Sesion)
+            .Where(a => a.IdUsuario == studentId && (a.EstadoAsistencia == "Presente" || a.EstadoAsistencia == "Retraso"))
+            .OrderByDescending(a => a.HoraFichaje)
+            .Select(a => new
+            {
+                id = a.IdAsistencia,
+                studentId = a.IdUsuario,
+                type = a.EstadoAsistencia == "Presente" ? "Entrada" : "Retraso",
+                subject = a.Sesion != null ? $"Asistencia ({a.Sesion.TipoSesion})" : "Asistencia Clase",
+                date = a.Sesion != null ? a.Sesion.Fecha : a.HoraFichaje.Date,
+                time = a.HoraFichaje.ToString("HH:mm"),
+                minutes = a.EstadoAsistencia == "Retraso" ? 15 : 0, // Fallback minutes
+                text = a.Justificacion ?? (a.EstadoAsistencia == "Retraso" ? "Retraso en la llegada" : "Fichaje realizado"),
+                justificacion = a.Justificacion,
+                estaJustificada = a.EstaJustificada
+            })
             .ToListAsync();
 
         return Ok(logs);
     }
 
-    // POST: api/attendance/absence
-    [HttpPost("absence")]
-    public async Task<IActionResult> CreateAbsence([FromBody] Absence absence)
-    {
-        if (absence == null)
-        {
-            return BadRequest(new { success = false, message = "Datos de falta no válidos." });
-        }
-
-        if (absence.StudentId <= 0)
-        {
-            return BadRequest(new { success = false, message = "El Id de estudiante es requerido y debe ser mayor a 0." });
-        }
-
-        if (string.IsNullOrWhiteSpace(absence.Subject))
-        {
-            return BadRequest(new { success = false, message = "La asignatura/materia (subject) es requerida." });
-        }
-
-        if (string.IsNullOrWhiteSpace(absence.Time))
-        {
-            return BadRequest(new { success = false, message = "El horario es requerido." });
-        }
-
-        if (absence.Date == default)
-        {
-            absence.Date = DateTime.Today;
-        }
-
-        context.Absences.Add(absence);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetAbsences), new { studentId = absence.StudentId }, new { success = true, data = absence });
-    }
-
-    // POST: api/attendance/log
-    [HttpPost("log")]
-    public async Task<IActionResult> CreateLog([FromBody] AttendanceLog log)
-    {
-        if (log == null)
-        {
-            return BadRequest(new { success = false, message = "Datos de registro no válidos." });
-        }
-
-        if (log.StudentId <= 0)
-        {
-            return BadRequest(new { success = false, message = "El Id de estudiante es requerido y debe ser mayor a 0." });
-        }
-
-        if (string.IsNullOrWhiteSpace(log.Type))
-        {
-            return BadRequest(new { success = false, message = "El tipo de asistencia ('Entrada', 'Salida', 'Retraso') es requerido." });
-        }
-
-        var normalizedType = log.Type.Trim();
-        if (!string.Equals(normalizedType, "Entrada", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(normalizedType, "Salida", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(normalizedType, "Retraso", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { success = false, message = "Tipo de registro no válido. Valores válidos: 'Entrada', 'Salida', 'Retraso'." });
-        }
-
-        // Normalizar tipo
-        log.Type = normalizedType;
-
-        if (string.IsNullOrWhiteSpace(log.Subject))
-        {
-            return BadRequest(new { success = false, message = "La asignatura/materia (subject) es requerida." });
-        }
-
-        if (string.IsNullOrWhiteSpace(log.Time))
-        {
-            return BadRequest(new { success = false, message = "La hora del registro es requerida." });
-        }
-
-        if (log.Date == default)
-        {
-            log.Date = DateTime.Today;
-        }
-
-        log.CreatedAt = DateTime.UtcNow;
-
-        context.AttendanceLogs.Add(log);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetLogs), new { studentId = log.StudentId }, new { success = true, data = log });
-    }
-
     // ==========================================
-    // NEW DAILY ROUNDS ENDPOINTS (Profesores)
+    // DAILY ROUNDS ENDPOINTS (Profesores)
     // ==========================================
 
     // GET: api/attendance/rondas
@@ -141,6 +77,14 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     {
         var rondas = await context.Sesiones
             .OrderByDescending(s => s.Fecha)
+            .Select(s => new
+            {
+                id = s.IdSesion, // Map to old string/int ID
+                tipoClase = s.TipoSesion == "Virtual" ? "Casa" : "Presencial",
+                fecha = s.Fecha,
+                cursoId = s.IdCurso,
+                permitirCambioPC = s.EsRondaCambio
+            })
             .ToListAsync();
         return Ok(rondas);
     }
@@ -151,9 +95,18 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     {
         var today = DateTime.Today;
         var ronda = await context.Sesiones
-            .FirstOrDefaultAsync(s => s.Fecha.Date == today);
+            .FirstOrDefaultAsync(s => s.Fecha == today && s.Estado == "Abierta");
         
-        return Ok(ronda);
+        if (ronda == null) return Ok(null);
+
+        return Ok(new
+        {
+            id = ronda.IdSesion,
+            tipoClase = ronda.TipoSesion == "Virtual" ? "Casa" : "Presencial",
+            fecha = ronda.Fecha,
+            cursoId = ronda.IdCurso,
+            permitirCambioPC = ronda.EsRondaCambio
+        });
     }
 
     // POST: api/attendance/rondas/abrir
@@ -165,61 +118,110 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             return BadRequest(new { success = false, message = "El tipo de clase es obligatorio." });
         }
 
-        if (request.TipoClase != "Presencial" && request.TipoClase != "Casa")
-        {
-            return BadRequest(new { success = false, message = "Tipo de clase inválido. Debe ser 'Presencial' o 'Casa'." });
-        }
+        var tipoClaseMapped = request.TipoClase == "Casa" ? "Virtual" : "Presencial";
 
         var today = DateTime.Today;
         var existingRonda = await context.Sesiones
-            .FirstOrDefaultAsync(s => s.Fecha.Date == today);
+            .FirstOrDefaultAsync(s => s.Fecha == today && s.Estado == "Abierta");
 
         if (existingRonda != null)
         {
-            existingRonda.TipoClase = request.TipoClase;
-            existingRonda.CursoId = request.CursoId <= 0 ? 1 : request.CursoId;
-            existingRonda.PermitirCambioPC = request.PermitirCambioPC;
+            existingRonda.TipoSesion = tipoClaseMapped;
+            existingRonda.IdCurso = request.CursoId <= 0 ? 1 : request.CursoId;
+            existingRonda.EsRondaCambio = request.PermitirCambioPC;
+            
+            if (request.EliminarEquipos)
+            {
+                var equipos = await context.EquiposAutorizados.ToListAsync();
+                context.EquiposAutorizados.RemoveRange(equipos);
+            }
+            else if (request.DesvincularTodos)
+            {
+                var equipos = await context.EquiposAutorizados.ToListAsync();
+                foreach (var eq in equipos)
+                {
+                    eq.IdUsuarioActual = null;
+                }
+            }
+
             context.Sesiones.Update(existingRonda);
             await context.SaveChangesAsync();
-            return Ok(new { success = true, message = $"Ronda de hoy actualizada a '{request.TipoClase}'", data = existingRonda });
+
+            return Ok(new { 
+                success = true, 
+                message = $"Ronda de hoy actualizada a '{request.TipoClase}'", 
+                data = new {
+                    id = existingRonda.IdSesion,
+                    tipoClase = request.TipoClase,
+                    fecha = existingRonda.Fecha,
+                    cursoId = existingRonda.IdCurso,
+                    permitirCambioPC = existingRonda.EsRondaCambio
+                }
+            });
         }
 
         var nuevaRonda = new Sesion
         {
-            TipoClase = request.TipoClase,
+            TipoSesion = tipoClaseMapped,
             Fecha = today,
-            CursoId = request.CursoId <= 0 ? 1 : request.CursoId,
-            PermitirCambioPC = request.PermitirCambioPC
+            HoraApertura = DateTime.Now,
+            IdCurso = request.CursoId <= 0 ? 1 : request.CursoId,
+            EsRondaCambio = request.PermitirCambioPC,
+            Estado = "Abierta"
         };
+
+        if (request.EliminarEquipos)
+        {
+            var equipos = await context.EquiposAutorizados.ToListAsync();
+            context.EquiposAutorizados.RemoveRange(equipos);
+        }
+        else if (request.DesvincularTodos)
+        {
+            var equipos = await context.EquiposAutorizados.ToListAsync();
+            foreach (var eq in equipos)
+            {
+                eq.IdUsuarioActual = null;
+            }
+        }
 
         context.Sesiones.Add(nuevaRonda);
         await context.SaveChangesAsync();
 
-        return Created("", new { success = true, message = $"Ronda '{request.TipoClase}' abierta con éxito para hoy.", data = nuevaRonda });
+        return Created("", new { 
+            success = true, 
+            message = $"Ronda '{request.TipoClase}' abierta con éxito para hoy.", 
+            data = new {
+                id = nuevaRonda.IdSesion,
+                tipoClase = request.TipoClase,
+                fecha = nuevaRonda.Fecha,
+                cursoId = nuevaRonda.IdCurso,
+                permitirCambioPC = nuevaRonda.EsRondaCambio
+            }
+        });
     }
 
     // ==========================================
-    // NEW STUDENT CHECK-IN ENDPOINT (Double-Factor)
+    // STUDENT CHECK-IN ENDPOINT (Time-based & IP)
     // ==========================================
 
     // POST: api/attendance/fichar/alumno
     [HttpPost("fichar/alumno")]
     public async Task<IActionResult> FicharAlumno([FromBody] FichajeAlumnoRequest request)
     {
-        if (request == null || request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.Type))
+        if (request == null || request.StudentId <= 0)
         {
-            return BadRequest(new { success = false, message = "Los campos studentId y type ('Entrada'/'Salida') son requeridos." });
+            return BadRequest(new { success = false, message = "El campo studentId es requerido." });
         }
 
         var today = DateTime.Today;
-        var round = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        var session = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha == today && s.Estado == "Abierta");
 
-        if (round == null)
+        if (session == null)
         {
             return BadRequest(new { success = false, message = "Fichaje denegado: El profesor no ha abierto ninguna ronda de fichaje para el día de hoy." });
         }
 
-        if (round.TipoClase == "Casa")
+        if (session.TipoSesion == "Virtual")
         {
             return StatusCode(403, new { success = false, message = "El fichaje autónomo está bloqueado para clases desde casa. El profesor registrará la asistencia manualmente." });
         }
@@ -228,99 +230,133 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
         var clientIp = NormalizeIpAddress(rawIp);
 
-        // Obtener Hostname del header
-        var clientHostname = HttpContext.Request.Headers["X-Client-Hostname"].ToString();
-        if (string.IsNullOrWhiteSpace(clientHostname))
+        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "localhost")
         {
-            // Para pruebas en entorno local si no hay proxy inyectando la cabecera
-            clientHostname = request.DevHostname ?? "";
+            clientIp = GetPhysicalNetworkIpAddress();
         }
 
-        if (string.IsNullOrWhiteSpace(clientHostname))
-        {
-            return BadRequest(new { success = false, message = "Fichaje denegado: No se pudo determinar el Hostname del dispositivo (Falta cabecera X-Client-Hostname)." });
-        }
 
-        // Validar contra EquiposAutorizados
+        // Obtener equipo registrado para el alumno
         var device = await context.EquiposAutorizados
-            .FirstOrDefaultAsync(d => d.NombreDispositivo.ToLower() == clientHostname.ToLower() && d.Activo);
+            .FirstOrDefaultAsync(d => d.IdUsuarioActual == request.StudentId);
 
         if (device == null)
         {
-            return StatusCode(403, new { success = false, message = $"El dispositivo '{clientHostname}' no está registrado o activo en la lista blanca de equipos." });
+            return StatusCode(403, new { success = false, message = "Fichaje denegado: No tienes ningún PC registrado a tu cuenta. Debes registrar tu ordenador primero." });
         }
 
-        // Validar que el dispositivo esté asignado a ESTE alumno (StudentId)
-        if (device.StudentId != request.StudentId)
-        {
-            return StatusCode(403, new { success = false, message = $"Fichaje denegado: El dispositivo '{clientHostname}' no está asignado a tu cuenta de estudiante (ID: {request.StudentId})." });
-        }
-
-        // Validar IP (permitir coincidencia de IP registrada)
-        var normalizedDeviceIp = NormalizeIpAddress(device.DireccionIP);
+        // Validar IP (permitir coincidencia o localhost para pruebas)
+        var normalizedDeviceIp = NormalizeIpAddress(device.IPAsignada);
         if (normalizedDeviceIp != clientIp && normalizedDeviceIp != "127.0.0.1" && clientIp != "127.0.0.1")
         {
-            return StatusCode(403, new { success = false, message = $"Fichaje denegado: La IP origen '{clientIp}' no coincide con la IP registrada para el dispositivo '{clientHostname}' ({device.DireccionIP})." });
+            return StatusCode(403, new { success = false, message = $"Fichaje denegado: Tu IP de conexión '{clientIp}' no coincide con la IP registrada de tu ordenador '{device.NombreEquipo}' ({device.IPAsignada})." });
         }
 
-        // Registrar Fichaje
-        var fichaje = new Fichaje
-        {
-            StudentId = request.StudentId,
-            FechaHora = DateTime.UtcNow,
-            EquipoId = device.Id,
-            Metodo = "Automatico_Alumno",
-            IpDetectada = clientIp,
-            HostnameDetectado = clientHostname,
-            IdSesion = round.Id
-        };
-        context.Fichajes.Add(fichaje);
+        // Calcular estado de asistencia basado en la hora de apertura
+        var diffMinutes = (DateTime.Now - session.HoraApertura).TotalMinutes;
+        string estadoAsistencia = "Presente";
+        string msg = "";
 
-        // Registrar en AttendanceLogs (Legacy Sync) para que aparezca en estadísticas y calendario del alumno
-        var legacyLog = new AttendanceLog
+        if (diffMinutes <= 10)
         {
-            StudentId = request.StudentId,
-            Type = request.Type, // "Entrada" o "Salida"
-            Subject = $"Asistencia ({round.TipoClase})",
-            Date = today,
-            Time = DateTime.Now.ToString("HH:mm"),
-            CreatedAt = DateTime.UtcNow,
-            Text = $"Fichaje automático desde {clientHostname} ({clientIp})"
-        };
-        context.AttendanceLogs.Add(legacyLog);
+            estadoAsistencia = "Presente";
+            msg = "Fichado a tiempo (Presente).";
+        }
+        else if (diffMinutes <= 60)
+        {
+            estadoAsistencia = "Retraso";
+            msg = $"Fichado con retraso ({Math.Round(diffMinutes)} min después de la apertura).";
+        }
+        else
+        {
+            estadoAsistencia = "Falta";
+            msg = $"Fichado fuera de hora. Se registra como Falta de asistencia ({Math.Round(diffMinutes)} min después).";
+        }
+
+        // Registrar o actualizar Asistencia
+        var existingAsistencia = await context.Asistencias
+            .FirstOrDefaultAsync(a => a.IdSesion == session.IdSesion && a.IdUsuario == request.StudentId);
+
+        // Bloquear re-fichaje si ya tiene un registro de Presente o Retraso
+        if (existingAsistencia != null && (existingAsistencia.EstadoAsistencia == "Presente" || existingAsistencia.EstadoAsistencia == "Retraso"))
+        {
+            return StatusCode(409, new
+            {
+                success = false,
+                message = $"Ya has registrado tu asistencia para la sesión de hoy a las {existingAsistencia.HoraFichaje:HH:mm}. No es posible fichar de nuevo."
+            });
+        }
+
+
+        if (existingAsistencia != null)
+        {
+            existingAsistencia.HoraFichaje = DateTime.Now;
+            existingAsistencia.IPUtilizada = clientIp;
+            existingAsistencia.EstadoAsistencia = estadoAsistencia;
+            existingAsistencia.Justificacion = $"Fichaje automático ({estadoAsistencia})";
+            if (!string.IsNullOrWhiteSpace(request.NombreUsuario))
+            {
+                existingAsistencia.NombreUsuario = request.NombreUsuario;
+            }
+            context.Asistencias.Update(existingAsistencia);
+        }
+        else
+        {
+            var newAsis = new Asistencia
+            {
+                IdSesion = session.IdSesion,
+                IdUsuario = request.StudentId,
+                NombreUsuario = !string.IsNullOrWhiteSpace(request.NombreUsuario) ? request.NombreUsuario : GetStudentNameLocal(request.StudentId),
+                HoraFichaje = DateTime.Now,
+                IPUtilizada = clientIp,
+                EstadoAsistencia = estadoAsistencia,
+                Justificacion = $"Fichaje automático ({estadoAsistencia})",
+                EstaJustificada = false
+            };
+            context.Asistencias.Add(newAsis);
+        }
 
         await context.SaveChangesAsync();
 
-        return Ok(new { 
-            success = true, 
-            message = $"Fichaje de {request.Type} realizado con éxito.", 
-            id = fichaje.Id,
-            ip = clientIp,
-            hostname = clientHostname
+        return Ok(new
+        {
+            success = true,
+            message = $"Fichaje registrado con éxito. Estado: {estadoAsistencia}. {msg}",
+            hostname = device.NombreEquipo,
+            ip = clientIp
         });
     }
 
     // ==========================================
-    // NEW DEVICE WHITELIST CRUD ENDPOINTS
+    // DEVICE REGISTRATION AND WHITELIST CRUD
     // ==========================================
 
     // GET: api/attendance/fichajes/sesion/{sessionId}
-    [HttpGet("fichajes/sesion/{sessionId:guid}")]
-    public async Task<IActionResult> GetFichajesPorSesion(Guid sessionId)
+    [HttpGet("fichajes/sesion/{sessionId:int}")]
+    public async Task<IActionResult> GetFichajesPorSesion(int sessionId)
     {
-        var sesion = await context.Sesiones.FirstOrDefaultAsync(s => s.Id == sessionId);
+        var sesion = await context.Sesiones.FirstOrDefaultAsync(s => s.IdSesion == sessionId);
         if (sesion == null)
         {
             return NotFound(new { success = false, message = "Sesión no encontrada." });
         }
 
-        var fichajes = await context.Fichajes
+        var fichajes = await context.Asistencias
             .Where(f => f.IdSesion == sessionId)
-            .Include(f => f.Equipo)
-            .OrderByDescending(f => f.FechaHora)
+            .OrderByDescending(f => f.HoraFichaje)
+            .Select(f => new
+            {
+                studentId = f.IdUsuario,
+                studentName = f.NombreUsuario,
+                fechaHora = f.HoraFichaje,
+                metodo = "Automático",
+                ipDetectada = f.IPUtilizada ?? "N/A",
+                hostnameDetectado = "Dispositivo del Alumno",
+                equipo = context.EquiposAutorizados.FirstOrDefault(e => e.IdUsuarioActual == f.IdUsuario)
+            })
             .ToListAsync();
 
-        return Ok(new { success = true, session = sesion, data = fichajes });
+        return Ok(new { success = true, session = new { id = sesion.IdSesion, tipoClase = sesion.TipoSesion == "Virtual" ? "Casa" : "Presencial", fecha = sesion.Fecha }, data = fichajes });
     }
 
     // GET: api/attendance/fichajes/sesion-actual
@@ -328,52 +364,68 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     public async Task<IActionResult> GetFichajesSesionActual()
     {
         var today = DateTime.Today;
-        var ronda = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        var ronda = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha == today && s.Estado == "Abierta");
         if (ronda == null)
         {
             return NotFound(new { success = false, message = "No hay sesión abierta para hoy." });
         }
 
-        var fichajes = await context.Fichajes
-            .Where(f => f.IdSesion == ronda.Id)
-            .Include(f => f.Equipo)
-            .OrderByDescending(f => f.FechaHora)
-            .ToListAsync();
-
-        return Ok(new { success = true, session = ronda, data = fichajes });
+        return await GetFichajesPorSesion(ronda.IdSesion);
     }
-
-
 
     // GET: api/attendance/equipos
     [HttpGet("equipos")]
     public async Task<IActionResult> GetEquipos()
     {
         var equipos = await context.EquiposAutorizados
-            .OrderBy(e => e.NombreDispositivo)
+            .OrderBy(e => e.NombreEquipo)
+            .Select(e => new
+            {
+                id = e.IdEquipo, // Compatibility
+                nombreDispositivo = e.NombreEquipo,
+                direccionIP = e.IPAsignada,
+                activo = true,
+                studentId = e.IdUsuarioActual
+            })
             .ToListAsync();
         return Ok(equipos);
     }
 
     // POST: api/attendance/equipos
     [HttpPost("equipos")]
-    public async Task<IActionResult> CreateEquipo([FromBody] EquipoAutorizado equipo)
+    public async Task<IActionResult> CreateEquipo([FromBody] EquipoCompatibilityDto dto)
     {
-        if (equipo == null || string.IsNullOrWhiteSpace(equipo.NombreDispositivo) || string.IsNullOrWhiteSpace(equipo.DireccionIP))
+        if (dto == null || string.IsNullOrWhiteSpace(dto.NombreDispositivo) || string.IsNullOrWhiteSpace(dto.DireccionIP))
         {
             return BadRequest(new { success = false, message = "El nombre de dispositivo y la dirección IP son requeridos." });
         }
 
         var existe = await context.EquiposAutorizados
-            .AnyAsync(e => e.NombreDispositivo.ToLower() == equipo.NombreDispositivo.ToLower());
+            .AnyAsync(e => e.IPAsignada == dto.DireccionIP || e.NombreEquipo.ToLower() == dto.NombreDispositivo.ToLower());
         if (existe)
         {
-            return BadRequest(new { success = false, message = "Ya existe un dispositivo registrado con este nombre." });
+            return BadRequest(new { success = false, message = "Ya existe un dispositivo registrado con esta IP o nombre." });
         }
+
+        var equipo = new EquipoAutorizado
+        {
+            NombreEquipo = dto.NombreDispositivo,
+            IPAsignada = dto.DireccionIP,
+            IdUsuarioActual = dto.StudentId,
+            FechaAsignacion = DateTime.Now
+        };
 
         context.EquiposAutorizados.Add(equipo);
         await context.SaveChangesAsync();
-        return Created("", equipo);
+        
+        return Created("", new
+        {
+            id = equipo.IdEquipo,
+            nombreDispositivo = equipo.NombreEquipo,
+            direccionIP = equipo.IPAsignada,
+            activo = true,
+            studentId = equipo.IdUsuarioActual
+        });
     }
 
     // GET: api/attendance/equipos/detectar-conexion
@@ -383,33 +435,12 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
         var clientIp = NormalizeIpAddress(rawIp);
 
-        // Si la conexión viene de localhost durante el desarrollo o prueba,
-        // resolvemos la dirección IPv4 física activa asignada a la máquina (Wi-Fi o Ethernet)
-        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "0.0.0.1" || clientIp == "localhost")
+        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "localhost")
         {
             clientIp = GetPhysicalNetworkIpAddress();
         }
 
-        var clientHostname = HttpContext.Request.Headers["X-Client-Hostname"].ToString();
-        if (string.IsNullOrWhiteSpace(clientHostname))
-        {
-            try
-            {
-                if (rawIp != "127.0.0.1" && rawIp != "::1" && rawIp != "0.0.0.1")
-                {
-                    var entry = System.Net.Dns.GetHostEntry(rawIp);
-                    clientHostname = entry.HostName.Split('.')[0];
-                }
-                else
-                {
-                    clientHostname = System.Environment.MachineName;
-                }
-            }
-            catch
-            {
-                clientHostname = System.Environment.MachineName; // Fallback al nombre de esta máquina
-            }
-        }
+        var clientHostname = System.Environment.MachineName;
 
         return Ok(new { success = true, ip = clientIp, hostname = clientHostname });
     }
@@ -418,69 +449,71 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     [HttpPost("equipos/registrar-alumno")]
     public async Task<IActionResult> RegistrarEquipoAlumno([FromBody] RegistrarEquipoAlumnoRequest request)
     {
-        if (request == null || request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.NombreDispositivo) || string.IsNullOrWhiteSpace(request.DireccionIP))
+        if (request == null || request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.DireccionIP))
         {
-            return BadRequest(new { success = false, message = "Todos los campos (studentId, nombreDispositivo, direccionIP) son requeridos." });
+            return BadRequest(new { success = false, message = "El id de estudiante y la dirección IP son requeridos." });
         }
 
-        // Validar si el profesor permite el registro o cambio de PC para hoy
+        // Validar si el profesor permite el registro (EsRondaCambio == true) en la sesión de hoy
         var today = DateTime.Today;
-        var round = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha.Date == today);
+        var round = await context.Sesiones.FirstOrDefaultAsync(s => s.Fecha == today && s.Estado == "Abierta");
         if (round == null)
         {
-            return StatusCode(403, new { success = false, message = "El registro o cambio de PC está denegado: El profesor no ha abierto ninguna ronda para el día de hoy." });
+            return StatusCode(403, new { success = false, message = "El registro de PC está denegado: El profesor no ha abierto ninguna ronda para el día de hoy." });
         }
-        if (!round.PermitirCambioPC)
+        if (!round.EsRondaCambio)
         {
             return StatusCode(403, new { success = false, message = "El registro o cambio de PC está bloqueado por el profesor para la sesión de hoy." });
         }
 
         // 1. Quitar la asignación previa que tuviera este alumno en cualquier PC
         var antiguosEquipos = await context.EquiposAutorizados
-            .Where(e => e.StudentId == request.StudentId)
+            .Where(e => e.IdUsuarioActual == request.StudentId)
             .ToListAsync();
         
         foreach (var antiguo in antiguosEquipos)
         {
-            antiguo.StudentId = null;
+            antiguo.IdUsuarioActual = null;
             context.EquiposAutorizados.Update(antiguo);
         }
 
         // 2. Buscar si el PC actual ya existe en la lista de EquiposAutorizados
         var pcExistente = await context.EquiposAutorizados
-            .FirstOrDefaultAsync(e => e.NombreDispositivo.ToLower() == request.NombreDispositivo.ToLower());
+            .FirstOrDefaultAsync(e => e.IPAsignada == request.DireccionIP);
 
         if (pcExistente != null)
         {
-            // Si el PC existe, lo actualizamos con los datos del alumno y lo forzamos a estar Activo
-            pcExistente.StudentId = request.StudentId;
-            pcExistente.DireccionIP = request.DireccionIP;
-            pcExistente.Activo = true;
+            pcExistente.IdUsuarioActual = request.StudentId;
+            pcExistente.FechaAsignacion = DateTime.Now;
+            if (!string.IsNullOrWhiteSpace(request.NombreDispositivo))
+            {
+                pcExistente.NombreEquipo = request.NombreDispositivo;
+            }
             context.EquiposAutorizados.Update(pcExistente);
             await context.SaveChangesAsync();
-            return Ok(new { success = true, message = $"Equipo '{request.NombreDispositivo}' asignado con éxito a tu cuenta.", data = pcExistente });
+            return Ok(new { success = true, message = $"Equipo '{pcExistente.NombreEquipo}' asignado con éxito a tu cuenta.", data = pcExistente });
         }
         else
         {
-            // Si no existe, creamos un nuevo registro de equipo asignado a este alumno
+            var friendlyName = string.IsNullOrWhiteSpace(request.NombreDispositivo) ? $"PC-IP-{request.DireccionIP.Split('.').Last()}" : request.NombreDispositivo;
             var nuevoEquipo = new EquipoAutorizado
             {
-                NombreDispositivo = request.NombreDispositivo,
-                DireccionIP = request.DireccionIP,
-                StudentId = request.StudentId,
-                Activo = true
+                NombreEquipo = friendlyName,
+                IPAsignada = request.DireccionIP,
+                IdUsuarioActual = request.StudentId,
+                FechaAsignacion = DateTime.Now
             };
             context.EquiposAutorizados.Add(nuevoEquipo);
             await context.SaveChangesAsync();
-            return Created("", new { success = true, message = $"Equipo '{request.NombreDispositivo}' registrado y asignado con éxito a tu cuenta.", data = nuevoEquipo });
+            return Created("", new { success = true, message = $"Equipo '{friendlyName}' registrado y asignado con éxito a tu cuenta.", data = nuevoEquipo });
         }
     }
 
     // PUT: api/attendance/equipos/{id}
-    [HttpPut("equipos/{id:guid}")]
-    public async Task<IActionResult> UpdateEquipo(Guid id, [FromBody] EquipoAutorizado equipo)
+    [HttpPut("equipos/{id:int}")]
+    public async Task<IActionResult> UpdateEquipo(int id, [FromBody] EquipoCompatibilityDto dto)
     {
-        if (equipo == null || id != equipo.Id)
+        if (dto == null || id != dto.Id)
         {
             return BadRequest(new { success = false, message = "Datos de dispositivo no válidos." });
         }
@@ -491,18 +524,18 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             return NotFound(new { success = false, message = "Dispositivo no encontrado." });
         }
 
-        dbEquipo.NombreDispositivo = equipo.NombreDispositivo;
-        dbEquipo.DireccionIP = equipo.DireccionIP;
-        dbEquipo.Activo = equipo.Activo;
+        dbEquipo.NombreEquipo = dto.NombreDispositivo;
+        dbEquipo.IPAsignada = dto.DireccionIP;
+        dbEquipo.IdUsuarioActual = dto.StudentId;
 
         context.EquiposAutorizados.Update(dbEquipo);
         await context.SaveChangesAsync();
-        return Ok(dbEquipo);
+        return Ok(dto);
     }
 
     // DELETE: api/attendance/equipos/{id}
-    [HttpDelete("equipos/{id:guid}")]
-    public async Task<IActionResult> DeleteEquipo(Guid id)
+    [HttpDelete("equipos/{id:int}")]
+    public async Task<IActionResult> DeleteEquipo(int id)
     {
         var dbEquipo = await context.EquiposAutorizados.FindAsync(id);
         if (dbEquipo == null)
@@ -516,13 +549,196 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     }
 
     // ==========================================
+    // ADMIN / MANUAL ATTENDANCE ENDPOINTS
+    // ==========================================
+
+    // POST: /api/admin/asistencia-manual
+    [HttpPost("/api/admin/asistencia-manual")]
+    public async Task<IActionResult> RegistrarAsistenciaManual([FromBody] AsistenciaManualRequest request)
+    {
+        if (request == null || request.StudentId <= 0 || request.SessionId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Los campos studentId y sessionId son obligatorios." });
+        }
+
+        var session = await context.Sesiones.FindAsync(request.SessionId);
+        if (session == null)
+        {
+            return NotFound(new { error = "La sesión de clase especificada no existe." });
+        }
+
+        // Normalizar y mapear el tipo de asistencia
+        var typeMapped = "Presente";
+        if (!string.IsNullOrWhiteSpace(request.Type))
+        {
+            var rawType = request.Type.ToLower();
+            if (rawType.Contains("falta") || rawType.Contains("abs")) typeMapped = "Falta";
+            else if (rawType.Contains("retra") || rawType.Contains("delay")) typeMapped = "Retraso";
+            else typeMapped = "Presente";
+        }
+
+        // Buscar si ya existe una asistencia para la combinación Sesión + Alumno
+        var existing = await context.Asistencias
+            .FirstOrDefaultAsync(a => a.IdSesion == request.SessionId && a.IdUsuario == request.StudentId);
+
+        if (existing != null)
+        {
+            existing.EstadoAsistencia = typeMapped;
+            existing.Justificacion = request.Text ?? $"Registro manual ({typeMapped}) por profesor.";
+            existing.HoraFichaje = DateTime.Now;
+            if (!string.IsNullOrWhiteSpace(request.NombreUsuario))
+            {
+                existing.NombreUsuario = request.NombreUsuario;
+            }
+            context.Asistencias.Update(existing);
+        }
+        else
+        {
+            var newAsis = new Asistencia
+            {
+                IdSesion = request.SessionId,
+                IdUsuario = request.StudentId,
+                NombreUsuario = !string.IsNullOrWhiteSpace(request.NombreUsuario) ? request.NombreUsuario : GetStudentNameLocal(request.StudentId),
+                HoraFichaje = DateTime.Now,
+                IPUtilizada = "Manual_Profesor",
+                EstadoAsistencia = typeMapped,
+                Justificacion = request.Text ?? $"Registro manual ({typeMapped}) por profesor.",
+                EstaJustificada = false
+            };
+            context.Asistencias.Add(newAsis);
+        }
+
+        await context.SaveChangesAsync();
+        return Ok(new { mensaje = "Fichaje manual registrado por el profesor con éxito.", id = request.StudentId.ToString() });
+    }
+
+    // GET: api/attendance/diario
+    [HttpGet("diario")]
+    public async Task<IActionResult> GetReporteDiario([FromQuery] DateTime? date)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+
+        var asistencias = await context.Asistencias
+            .Include(a => a.Sesion)
+            .Where(a => a.HoraFichaje.Date == targetDate || (a.Sesion != null && a.Sesion.Fecha == targetDate))
+            .ToListAsync();
+
+        return Ok(new
+        {
+            logs = asistencias
+                .Where(a => a.EstadoAsistencia == "Presente" || a.EstadoAsistencia == "Retraso")
+                .Select(a => new
+                {
+                    id = a.IdAsistencia,
+                    studentId = a.IdUsuario,
+                    studentName = a.NombreUsuario,
+                    type = a.EstadoAsistencia == "Presente" ? "Entrada" : "Retraso",
+                    subject = a.Sesion != null ? $"Asistencia ({a.Sesion.TipoSesion})" : "Asistencia Clase",
+                    time = a.HoraFichaje.ToString("HH:mm"),
+                    minutes = a.EstadoAsistencia == "Retraso" ? 15 : 0,
+                    text = a.Justificacion,
+                    justificacion = a.Justificacion,
+                    estaJustificada = a.EstaJustificada
+                }),
+            absences = asistencias
+                .Where(a => a.EstadoAsistencia == "Falta")
+                .Select(a => new
+                {
+                    id = a.IdAsistencia,
+                    studentId = a.IdUsuario,
+                    studentName = a.NombreUsuario,
+                    subject = a.Sesion != null ? $"Asistencia ({a.Sesion.TipoSesion})" : "Asistencia Clase",
+                    time = a.HoraFichaje.ToString("HH:mm"),
+                    justificacion = a.Justificacion,
+                    estaJustificada = a.EstaJustificada
+                })
+        });
+    }
+
+    // GET: api/attendance/rondas/{sessionId}/asistentes
+    [HttpGet("rondas/{sessionId:int}/asistentes")]
+    public async Task<IActionResult> GetAsistentesPorSesion(int sessionId)
+    {
+        var session = await context.Sesiones.FindAsync(sessionId);
+        if (session == null)
+        {
+            return NotFound(new { success = false, message = "Sesión no encontrada." });
+        }
+
+        var asistencias = await context.Asistencias
+            .Where(a => a.IdSesion == sessionId)
+            .ToListAsync();
+
+        var studentIds = asistencias.Select(a => a.IdUsuario).Distinct().ToList();
+        var equipos = await context.EquiposAutorizados
+            .Where(e => e.IdUsuarioActual != null && studentIds.Contains(e.IdUsuarioActual.Value))
+            .ToListAsync();
+
+        var asistentes = asistencias
+            .Select(a => new
+            {
+                id = a.IdAsistencia,
+                studentId = a.IdUsuario,
+                studentName = a.NombreUsuario,
+                fechaHora = a.HoraFichaje,
+                ultimaActividad = a.HoraFichaje,
+                metodo = a.IPUtilizada == "Manual_Profesor" ? "Manual_Profesor" : "Automatico_Alumno",
+                ip = a.IPUtilizada ?? "-",
+                hostname = a.IPUtilizada == "Manual_Profesor" ? "Casa/Manual" : "Dispositivo del Alumno",
+                source = "Fichaje",
+                totalRegistros = 1,
+                tipo = a.EstadoAsistencia == "Presente" ? "Entrada" : a.EstadoAsistencia, // Map for UI compatibility
+                subject = "Clase",
+                text = a.Justificacion,
+                estaJustificada = a.EstaJustificada,
+                equipo = equipos.FirstOrDefault(e => e.IdUsuarioActual == a.IdUsuario)
+            })
+            .OrderByDescending(x => x.fechaHora)
+            .ToList();
+
+        return Ok(new { success = true, session = sessionId, date = session.Fecha, attendees = asistentes });
+    }
+
+    // DELETE: api/attendance/diario/{studentId:int}
+    [HttpDelete("diario/{studentId:int}")]
+    public async Task<IActionResult> ClearDiario(int studentId, [FromQuery] DateTime? date)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+
+        var asistencias = await context.Asistencias
+            .Include(a => a.Sesion)
+            .Where(a => a.IdUsuario == studentId && (a.HoraFichaje.Date == targetDate || (a.Sesion != null && a.Sesion.Fecha == targetDate)))
+            .ToListAsync();
+
+        if (asistencias.Any())
+        {
+            context.Asistencias.RemoveRange(asistencias);
+            await context.SaveChangesAsync();
+        }
+
+        return Ok(new { success = true, mensaje = $"Registros del alumno ID {studentId} para el día {targetDate:yyyy-MM-dd} eliminados con éxito." });
+    }
+
+    // ==========================================
     // UTILITIES
     // ==========================================
+
+    private string GetStudentNameLocal(int studentId)
+    {
+        return studentId switch
+        {
+            1 => "Raúl García",
+            2 => "Sofia Martín",
+            3 => "Carlos Gomez",
+            4 => "Ana Belén Ortiz",
+            101 => "Estudiante Tajamar (Pruebas)",
+            _ => $"Estudiante #{studentId}"
+        };
+    }
 
     private string NormalizeIpAddress(string ip)
     {
         if (ip == "::1") return "127.0.0.1";
-        // Si tiene puerto o es IPv6 mapeada, extraer IPv4
         if (ip.Contains("::ffff:"))
         {
             return ip.Replace("::ffff:", "");
@@ -596,313 +812,125 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         return "127.0.0.1";
     }
 
-    // ==========================================
-    // NEW ADMIN / MANUAL ATTENDANCE ENDPOINTS
-    // ==========================================
-
-    // POST: /api/admin/asistencia-manual
-    [HttpPost("/api/admin/asistencia-manual")]
-    public async Task<IActionResult> RegistrarAsistenciaManual([FromBody] AsistenciaManualRequest request)
+    // POST: api/attendance/absences/{id:int}/justify
+    [HttpPost("absences/{id:int}/justify")]
+    public async Task<IActionResult> JustificarFalta(int id, [FromBody] JustificarFaltaRequest request)
     {
-        if (request == null || request.StudentId <= 0 || request.SessionId == Guid.Empty)
+        if (request == null || string.IsNullOrWhiteSpace(request.Justificacion))
         {
-            return BadRequest(new { success = false, message = "Los campos studentId y sessionId son obligatorios." });
+            return BadRequest(new { success = false, message = "La justificación es requerida." });
         }
 
-        var session = await context.Sesiones.FindAsync(request.SessionId);
-        if (session == null)
+        var asistencia = await context.Asistencias.FindAsync(id);
+        if (asistencia == null)
         {
-            return NotFound(new { error = "La sesión de clase especificada no existe." });
+            return NotFound(new { success = false, message = "Asistencia no encontrada." });
         }
 
-        var today = session.Fecha.Date;
+        asistencia.Justificacion = request.Justificacion;
+        asistencia.EstaJustificada = false; // Se marca como pendiente (no justificada aún)
 
-        // Determinar tipo si no viene especificado
-        var type = request.Type;
-        if (string.IsNullOrWhiteSpace(type))
-        {
-            // Auto-detectar si ya tiene Entrada hoy
-            var yaTieneEntrada = await context.AttendanceLogs
-                .AnyAsync(l => l.StudentId == request.StudentId && l.Date.Date == today && l.Type == "Entrada");
-            type = yaTieneEntrada ? "Salida" : "Entrada";
-        }
-
-        if (type == "Falta")
-        {
-            // Primero limpiamos cualquier registro previo para hoy para no duplicar
-            var existingAbsences = await context.Absences
-                .Where(a => a.StudentId == request.StudentId && a.Date.Date == today)
-                .ToListAsync();
-            if (existingAbsences.Any()) context.Absences.RemoveRange(existingAbsences);
-
-            var existingLogs = await context.AttendanceLogs
-                .Where(l => l.StudentId == request.StudentId && l.Date.Date == today)
-                .ToListAsync();
-            if (existingLogs.Any()) context.AttendanceLogs.RemoveRange(existingLogs);
-
-            var existingFichajes = await context.Fichajes
-                .Where(f => f.StudentId == request.StudentId && f.IdSesion == request.SessionId)
-                .ToListAsync();
-            if (existingFichajes.Any()) context.Fichajes.RemoveRange(existingFichajes);
-
-            // Registrar falta
-            var absence = new Absence
-            {
-                StudentId = request.StudentId,
-                Subject = $"Asistencia ({session.TipoClase})",
-                Date = today,
-                Time = DateTime.Now.ToString("HH:mm")
-            };
-            context.Absences.Add(absence);
-            await context.SaveChangesAsync();
-            return Ok(new { mensaje = "Fichaje manual registrado por el profesor con éxito.", id = absence.Id.ToString() });
-        }
-        else
-        {
-            // Si es entrada/salida/retraso, limpiamos falta si existiera
-            var existingAbsences = await context.Absences
-                .Where(a => a.StudentId == request.StudentId && a.Date.Date == today)
-                .ToListAsync();
-            if (existingAbsences.Any()) context.Absences.RemoveRange(existingAbsences);
-
-            // Si es Entrada o Retraso, limpiamos entradas/retrasos previos
-            if (type == "Entrada" || type == "Retraso")
-            {
-                var prevLogs = await context.AttendanceLogs
-                    .Where(l => l.StudentId == request.StudentId && l.Date.Date == today && (l.Type == "Entrada" || l.Type == "Retraso"))
-                    .ToListAsync();
-                if (prevLogs.Any()) context.AttendanceLogs.RemoveRange(prevLogs);
-            }
-            // Si es Salida, limpiamos salidas previas
-            else if (type == "Salida")
-            {
-                var prevLogs = await context.AttendanceLogs
-                    .Where(l => l.StudentId == request.StudentId && l.Date.Date == today && l.Type == "Salida")
-                    .ToListAsync();
-                if (prevLogs.Any()) context.AttendanceLogs.RemoveRange(prevLogs);
-            }
-
-            // Registrar Fichaje
-            var fichaje = new Fichaje
-            {
-                StudentId = request.StudentId,
-                FechaHora = DateTime.UtcNow,
-                EquipoId = null,
-                Metodo = "Manual_Profesor",
-                IpDetectada = "Casa",
-                HostnameDetectado = "Casa",
-                IdSesion = session.Id
-            };
-            context.Fichajes.Add(fichaje);
-
-            // Registrar en AttendanceLogs (Legacy Sync)
-            var legacyLog = new AttendanceLog
-            {
-                StudentId = request.StudentId,
-                Type = type,
-                Subject = $"Asistencia ({session.TipoClase})",
-                Date = today,
-                Time = DateTime.Now.ToString("HH:mm"),
-                CreatedAt = DateTime.UtcNow,
-                Minutes = request.Minutes,
-                Text = request.Text ?? $"Fichaje manual ({type}) registrado por el profesor en clase desde {session.TipoClase}"
-            };
-            context.AttendanceLogs.Add(legacyLog);
-            await context.SaveChangesAsync();
-
-            return Ok(new { mensaje = "Fichaje manual registrado por el profesor con éxito.", id = fichaje.Id.ToString() });
-        }
-    }
-
-    // GET: api/attendance/diario
-    [HttpGet("diario")]
-    public async Task<IActionResult> GetReporteDiario([FromQuery] DateTime? date)
-    {
-        var targetDate = (date ?? DateTime.Today).Date;
-
-        var logs = await context.AttendanceLogs
-            .Where(l => l.Date.Date == targetDate)
-            .ToListAsync();
-
-        var absences = await context.Absences
-            .Where(a => a.Date.Date == targetDate)
-            .ToListAsync();
-
-        return Ok(new {
-            logs = logs.Select(l => new {
-                l.Id,
-                l.StudentId,
-                l.Type,
-                l.Subject,
-                l.Time,
-                l.Minutes,
-                l.Text
-            }),
-            absences = absences.Select(a => new {
-                a.Id,
-                a.StudentId,
-                a.Subject,
-                a.Time
-            })
-        });
-    }
-
-    // GET: api/attendance/rondas/{sessionId}/asistentes
-    [HttpGet("rondas/{sessionId:guid}/asistentes")]
-    public async Task<IActionResult> GetAsistentesPorSesion(Guid sessionId)
-    {
-        var session = await context.Sesiones.FindAsync(sessionId);
-        if (session == null)
-        {
-            return NotFound(new { success = false, message = "Sesión no encontrada." });
-        }
-
-        var targetDate = session.Fecha.Date;
-
-        // El esquema sí vincula Fichajes con Sesiones mediante IdSesion, por lo que filtramos
-        // directamente por el Id de la sesión para evitar mezclar fichajes de distintos cursos del mismo día.
-        var fichajes = await context.Fichajes
-            .AsNoTracking()
-            .Where(f => f.IdSesion == sessionId)
-            .OrderBy(f => f.FechaHora)
-            .Select(f => new SessionAttendeeProjection
-            {
-                source = "Fichaje",
-                Id = f.Id,
-                StudentId = f.StudentId,
-                FechaHora = f.FechaHora,
-                Metodo = f.Metodo,
-                Ip = f.IpDetectada,
-                Hostname = f.HostnameDetectado,
-                Type = null,
-                Subject = null,
-                Text = null
-            })
-            .ToListAsync();
-
-        var logs = await context.AttendanceLogs
-            .AsNoTracking()
-            .Where(l => l.Date.Date == targetDate)
-            .OrderBy(l => l.Date)
-            .ThenBy(l => l.CreatedAt)
-            .Select(l => new SessionAttendeeProjection
-            {
-                source = "AttendanceLog",
-                Id = Guid.Empty,
-                StudentId = l.StudentId,
-                FechaHora = l.CreatedAt,
-                Metodo = l.Type,
-                Ip = null,
-                Hostname = null,
-                Type = l.Type,
-                Subject = l.Subject,
-                Text = l.Text
-            })
-            .ToListAsync();
-
-        var asistentes = fichajes
-            .Concat(logs)
-            .GroupBy(x => x.StudentId)
-            .Select(group =>
-            {
-                var first = group.OrderBy(x => x.FechaHora).First();
-                var last = group.OrderByDescending(x => x.FechaHora).First();
-
-                return new
-                {
-                    id = first.Id,
-                    studentId = group.Key,
-                    fechaHora = first.FechaHora,
-                    ultimaActividad = last.FechaHora,
-                    metodo = first.Metodo,
-                    ip = first.Ip,
-                    hostname = first.Hostname,
-                    source = group.Any(x => x.source == "Fichaje") ? "Fichaje" : "AttendanceLog",
-                    totalRegistros = group.Count(),
-                    tipo = last.Type,
-                    subject = last.Subject,
-                    text = last.Text
-                };
-            })
-            .OrderByDescending(x => x.fechaHora)
-            .ToList();
-
-        return Ok(new { success = true, session = sessionId, date = targetDate, attendees = asistentes });
-    }
-
-    // DELETE: api/attendance/diario/{studentId:int}
-    [HttpDelete("diario/{studentId:int}")]
-    public async Task<IActionResult> ClearDiario(int studentId, [FromQuery] DateTime? date)
-    {
-        var targetDate = (date ?? DateTime.Today).Date;
-
-        var logs = await context.AttendanceLogs
-            .Where(l => l.StudentId == studentId && l.Date.Date == targetDate)
-            .ToListAsync();
-
-        var absences = await context.Absences
-            .Where(a => a.StudentId == studentId && a.Date.Date == targetDate)
-            .ToListAsync();
-
-        var fichajes = await context.Fichajes
-            .Where(f => f.StudentId == studentId && f.FechaHora.Date == targetDate)
-            .ToListAsync();
-
-        if (logs.Any()) context.AttendanceLogs.RemoveRange(logs);
-        if (absences.Any()) context.Absences.RemoveRange(absences);
-        if (fichajes.Any()) context.Fichajes.RemoveRange(fichajes);
-
+        context.Asistencias.Update(asistencia);
         await context.SaveChangesAsync();
 
-        return Ok(new { success = true, mensaje = $"Registros del alumno ID {studentId} para el día {targetDate:yyyy-MM-dd} eliminados con éxito." });
+        return Ok(new { success = true, message = "Justificación registrada. Pendiente de aprobación por el profesor." });
     }
 
+    // POST: api/attendance/absences/{id:int}/review-justification
+    [HttpPost("absences/{id:int}/review-justification")]
+    public async Task<IActionResult> ReviewJustification(int id, [FromBody] ReviewJustificacionRequest request)
+    {
+        var asistencia = await context.Asistencias.FindAsync(id);
+        if (asistencia == null)
+        {
+            return NotFound(new { success = false, message = "Asistencia no encontrada." });
+        }
+
+        asistencia.EstaJustificada = request.Aceptar;
+
+        context.Asistencias.Update(asistencia);
+        await context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = request.Aceptar ? "Justificación aceptada." : "Justificación rechazada." });
+    }
+
+    // POST: api/attendance/absences/{id:int}/justify-teacher
+    [HttpPost("absences/{id:int}/justify-teacher")]
+    public async Task<IActionResult> JustificarFaltaTeacher(int id, [FromBody] JustificarFaltaRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Justificacion))
+        {
+            return BadRequest(new { success = false, message = "La justificación es requerida." });
+        }
+
+        var asistencia = await context.Asistencias.FindAsync(id);
+        if (asistencia == null)
+        {
+            return NotFound(new { success = false, message = "Asistencia no encontrada." });
+        }
+
+        asistencia.Justificacion = request.Justificacion;
+        asistencia.EstaJustificada = true; // El profesor lo justifica directamente, por lo que queda aprobada automáticamente.
+
+        context.Asistencias.Update(asistencia);
+        await context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Falta justificada con éxito por el profesor." });
+    }
 }
 
 // ==========================================
-// REQUEST DTOs
+// DTOs AND REQUEST MODELS
 // ==========================================
 
 public sealed class RondasRequest
 {
-    public string TipoClase { get; set; } = string.Empty; // "Presencial" o "Casa"
+    public string TipoClase { get; set; } = string.Empty; // "Presencial" o "Casa" (Virtual)
     public int CursoId { get; set; } = 1;
-    public bool PermitirCambioPC { get; set; } = false;
+    public bool PermitirCambioPC { get; set; } = false; // EsRondaCambio
+    public bool DesvincularTodos { get; set; } = false;
+    public bool EliminarEquipos { get; set; } = false;
 }
 
 public sealed class FichajeAlumnoRequest
 {
     public int StudentId { get; set; }
+    public string? NombreUsuario { get; set; }
     public string Type { get; set; } = string.Empty; // "Entrada" o "Salida"
-    public string? DevHostname { get; set; } // Opcional para pruebas locales
+    public string? DevHostname { get; set; }
 }
 
 public sealed class RegistrarEquipoAlumnoRequest
 {
     public int StudentId { get; set; }
-    public string NombreDispositivo { get; set; } = string.Empty;
+    public string? NombreDispositivo { get; set; }
     public string DireccionIP { get; set; } = string.Empty;
 }
 
 public sealed class AsistenciaManualRequest
 {
     public int StudentId { get; set; }
-    public Guid SessionId { get; set; }
-    public string? Type { get; set; } // "Entrada", "Salida", "Retraso", "Falta"
+    public string? NombreUsuario { get; set; }
+    public int SessionId { get; set; }
+    public string? Type { get; set; } // "Presente", "Retraso", "Falta"
     public int? Minutes { get; set; }
-    public string? Text { get; set; }
+    public string? Text { get; set; } // Justificacion
 }
 
-public sealed class SessionAttendeeProjection
+public sealed class EquipoCompatibilityDto
 {
-    public string source { get; set; } = string.Empty;
-    public Guid Id { get; set; }
-    public int StudentId { get; set; }
-    public DateTime FechaHora { get; set; }
-    public string Metodo { get; set; } = string.Empty;
-    public string? Ip { get; set; }
-    public string? Hostname { get; set; }
-    public string? Type { get; set; }
-    public string? Subject { get; set; }
-    public string? Text { get; set; }
+    public int Id { get; set; }
+    public string NombreDispositivo { get; set; } = string.Empty;
+    public string DireccionIP { get; set; } = string.Empty;
+    public int? StudentId { get; set; }
+}
+
+public class JustificarFaltaRequest
+{
+    public string Justificacion { get; set; } = string.Empty;
+}
+
+public class ReviewJustificacionRequest
+{
+    public bool Aceptar { get; set; }
 }

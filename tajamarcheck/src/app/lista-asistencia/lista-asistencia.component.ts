@@ -35,6 +35,12 @@ export class ListaAsistenciaComponent implements OnInit, OnDestroy {
   filterType: 'all' | 'absence' | 'delay' = 'all';
   filterSubject = '';
 
+  mostrarModalJustificar = false;
+  justificacionForm = {
+    idAsistencia: 0,
+    texto: ''
+  };
+
   private querySub?: Subscription;
 
   constructor(
@@ -123,7 +129,9 @@ export class ListaAsistenciaComponent implements OnInit, OnDestroy {
       date: new Date(a.date),
       time: a.time,
       minutes: null,
-      text: 'Falta de asistencia registrada.'
+      text: 'Falta de asistencia registrada.',
+      justificacion: a.justificacion,
+      estaJustificada: a.estaJustificada
     }));
 
     const mappedDelays = this.logs
@@ -177,5 +185,28 @@ export class ListaAsistenciaComponent implements OnInit, OnDestroy {
     this.filterType = 'all';
     this.filterSubject = '';
     this.applyFilters();
+  }
+
+  abrirModalJustificar(inc: any) {
+    this.justificacionForm.idAsistencia = inc.id;
+    this.justificacionForm.texto = inc.justificacion || '';
+    this.mostrarModalJustificar = true;
+  }
+
+  guardarJustificacion() {
+    if (!this.justificacionForm.texto.trim()) {
+      alert('Por favor, escribe un texto para justificar la falta.');
+      return;
+    }
+    this.studentService.justificarFalta(this.justificacionForm.idAsistencia, this.justificacionForm.texto.trim()).subscribe({
+      next: (res) => {
+        alert(res.message || 'Justificación enviada correctamente.');
+        this.mostrarModalJustificar = false;
+        this.loadData(); // Recargar datos
+      },
+      error: (err) => {
+        alert('Error al justificar falta: ' + (err.error?.message || err.message));
+      }
+    });
   }
 }

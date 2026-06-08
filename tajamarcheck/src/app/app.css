@@ -191,6 +191,37 @@ input:focus, select:focus, textarea:focus {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Calendar status colors */
+.tile-present {
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.35) !important;
+  font-weight: 800 !important;
+}
+
+.tile-absence {
+  background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%) !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -4px rgba(244, 63, 94, 0.3) !important;
+  font-weight: 800 !important;
+}
+
+.tile-delay {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.3) !important;
+  font-weight: 800 !important;
+}
+
+.tile-nodata {
+  background: rgba(30, 41, 59, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #94a3b8 !important;
+}
+
 /* TEXT GRADIENTS */
 .text-glow-gradient {
   background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);

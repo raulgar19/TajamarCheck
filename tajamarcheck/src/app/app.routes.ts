@@ -7,7 +7,7 @@ export const routes: Routes = [
   { path: 'rondas', loadComponent: () => import('./session-attendance/session-attendance.component').then(m => m.SessionAttendanceComponent) },
   { path: 'perfil', loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent) },
   { path: 'asistencia', loadComponent: () => import('./lista-asistencia/lista-asistencia.component').then(m => m.ListaAsistenciaComponent) },
-  { path: 'sesiones/fichajes', loadComponent: () => import('./session-checkins/session-checkins.component').then(m => m.SessionCheckinsComponent) },
+  { path: 'sesiones/fichajes', redirectTo: 'rondas', pathMatch: 'full' },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' }
 ];

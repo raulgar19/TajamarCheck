@@ -8,18 +8,28 @@ namespace TajamarCheckApi.Models;
 public sealed class Sesion
 {
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int IdSesion { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string TipoClase { get; set; } = "Presencial"; // "Presencial" o "Casa"
+    public int IdCurso { get; set; } = 1;
 
     [Required]
     public DateTime Fecha { get; set; } = DateTime.Today;
 
     [Required]
-    public int CursoId { get; set; } = 1;
+    public DateTime HoraApertura { get; set; } = DateTime.Now;
+
+    public DateTime? HoraCierre { get; set; }
 
     [Required]
-    public bool PermitirCambioPC { get; set; } = false;
+    [MaxLength(20)]
+    public string TipoSesion { get; set; } = "Presencial"; // "Presencial", "Virtual"
+
+    [Required]
+    public bool EsRondaCambio { get; set; } = false;
+
+    [Required]
+    [MaxLength(20)]
+    public string Estado { get; set; } = "Abierta"; // "Abierta", "Cerrada"
 }

@@ -8,18 +8,19 @@ namespace TajamarCheckApi.Models;
 public sealed class EquipoAutorizado
 {
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int IdEquipo { get; set; }
 
     [Required]
-    [MaxLength(150)]
-    public string NombreDispositivo { get; set; } = string.Empty;
+    [MaxLength(100)]
+    public string NombreEquipo { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(50)]
-    public string DireccionIP { get; set; } = string.Empty;
+    [MaxLength(45)]
+    public string IPAsignada { get; set; } = string.Empty;
+
+    public int? IdUsuarioActual { get; set; }
 
     [Required]
-    public bool Activo { get; set; } = true;
-
-    public int? StudentId { get; set; }
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
 }
