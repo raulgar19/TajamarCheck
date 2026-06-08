@@ -1,0 +1,28 @@
+/* Customized CSS for student attendance list view */
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Specific spacing for list elements */
+.glass-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Slight scale effect on list cards hover */
+.glass-card:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.6), 0 0 35px -8px rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Custom highlight transitions for select dropdowns */
+select {
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+}
+
+select:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}

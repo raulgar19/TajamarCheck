@@ -36,6 +36,14 @@ export class StudentService {
     return this.http.get<any>(`/api/attendance/rondas/${sessionId}/asistentes`);
   }
 
+  getFichajesPorSesion(sessionId: string): Observable<any> {
+    return this.http.get<any>(`/api/attendance/fichajes/sesion/${sessionId}`);
+  }
+
+  detectarConexion(): Observable<any> {
+    return this.http.get<any>('/api/attendance/equipos/detectar-conexion');
+  }
+
   ficharAlumno(studentId: number, type: string, devHostname?: string): Observable<any> {
     return this.http.post<any>('/api/attendance/fichar/alumno', {
       studentId: studentId,

@@ -641,7 +641,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             if (existingLogs.Any()) context.AttendanceLogs.RemoveRange(existingLogs);
 
             var existingFichajes = await context.Fichajes
-                .Where(f => f.StudentId == request.StudentId && f.FechaHora.Date == today)
+                .Where(f => f.StudentId == request.StudentId && f.IdSesion == request.SessionId)
                 .ToListAsync();
             if (existingFichajes.Any()) context.Fichajes.RemoveRange(existingFichajes);
 
@@ -690,7 +690,8 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
                 EquipoId = null,
                 Metodo = "Manual_Profesor",
                 IpDetectada = "Casa",
-                HostnameDetectado = "Casa"
+                HostnameDetectado = "Casa",
+                IdSesion = session.Id
             };
             context.Fichajes.Add(fichaje);
 
@@ -758,11 +759,11 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
 
         var targetDate = session.Fecha.Date;
 
-        // El esquema no vincula Fichajes con Sesiones, así que usamos la fecha de la sesión
-        // y combinamos Fichajes + AttendanceLogs para no perder registros si solo existe una fuente.
+        // El esquema sí vincula Fichajes con Sesiones mediante IdSesion, por lo que filtramos
+        // directamente por el Id de la sesión para evitar mezclar fichajes de distintos cursos del mismo día.
         var fichajes = await context.Fichajes
             .AsNoTracking()
-            .Where(f => f.FechaHora.Date == targetDate)
+            .Where(f => f.IdSesion == sessionId)
             .OrderBy(f => f.FechaHora)
             .Select(f => new SessionAttendeeProjection
             {
