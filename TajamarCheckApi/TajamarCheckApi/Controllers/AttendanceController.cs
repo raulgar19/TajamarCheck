@@ -746,6 +746,89 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         });
     }
 
+    // GET: api/attendance/rondas/{sessionId}/asistentes
+    [HttpGet("rondas/{sessionId:guid}/asistentes")]
+    public async Task<IActionResult> GetAsistentesPorSesion(Guid sessionId)
+    {
+        var session = await context.Sesiones.FindAsync(sessionId);
+        if (session == null)
+        {
+            return NotFound(new { success = false, message = "Sesión no encontrada." });
+        }
+
+        var targetDate = session.Fecha.Date;
+
+        // El esquema no vincula Fichajes con Sesiones, así que usamos la fecha de la sesión
+        // y combinamos Fichajes + AttendanceLogs para no perder registros si solo existe una fuente.
+        var fichajes = await context.Fichajes
+            .AsNoTracking()
+            .Where(f => f.FechaHora.Date == targetDate)
+            .OrderBy(f => f.FechaHora)
+            .Select(f => new SessionAttendeeProjection
+            {
+                source = "Fichaje",
+                Id = f.Id,
+                StudentId = f.StudentId,
+                FechaHora = f.FechaHora,
+                Metodo = f.Metodo,
+                Ip = f.IpDetectada,
+                Hostname = f.HostnameDetectado,
+                Type = null,
+                Subject = null,
+                Text = null
+            })
+            .ToListAsync();
+
+        var logs = await context.AttendanceLogs
+            .AsNoTracking()
+            .Where(l => l.Date.Date == targetDate)
+            .OrderBy(l => l.Date)
+            .ThenBy(l => l.CreatedAt)
+            .Select(l => new SessionAttendeeProjection
+            {
+                source = "AttendanceLog",
+                Id = Guid.Empty,
+                StudentId = l.StudentId,
+                FechaHora = l.CreatedAt,
+                Metodo = l.Type,
+                Ip = null,
+                Hostname = null,
+                Type = l.Type,
+                Subject = l.Subject,
+                Text = l.Text
+            })
+            .ToListAsync();
+
+        var asistentes = fichajes
+            .Concat(logs)
+            .GroupBy(x => x.StudentId)
+            .Select(group =>
+            {
+                var first = group.OrderBy(x => x.FechaHora).First();
+                var last = group.OrderByDescending(x => x.FechaHora).First();
+
+                return new
+                {
+                    id = first.Id,
+                    studentId = group.Key,
+                    fechaHora = first.FechaHora,
+                    ultimaActividad = last.FechaHora,
+                    metodo = first.Metodo,
+                    ip = first.Ip,
+                    hostname = first.Hostname,
+                    source = group.Any(x => x.source == "Fichaje") ? "Fichaje" : "AttendanceLog",
+                    totalRegistros = group.Count(),
+                    tipo = last.Type,
+                    subject = last.Subject,
+                    text = last.Text
+                };
+            })
+            .OrderByDescending(x => x.fechaHora)
+            .ToList();
+
+        return Ok(new { success = true, session = sessionId, date = targetDate, attendees = asistentes });
+    }
+
     // DELETE: api/attendance/diario/{studentId:int}
     [HttpDelete("diario/{studentId:int}")]
     public async Task<IActionResult> ClearDiario(int studentId, [FromQuery] DateTime? date)
@@ -806,5 +889,19 @@ public sealed class AsistenciaManualRequest
     public Guid SessionId { get; set; }
     public string? Type { get; set; } // "Entrada", "Salida", "Retraso", "Falta"
     public int? Minutes { get; set; }
+    public string? Text { get; set; }
+}
+
+public sealed class SessionAttendeeProjection
+{
+    public string source { get; set; } = string.Empty;
+    public Guid Id { get; set; }
+    public int StudentId { get; set; }
+    public DateTime FechaHora { get; set; }
+    public string Metodo { get; set; } = string.Empty;
+    public string? Ip { get; set; }
+    public string? Hostname { get; set; }
+    public string? Type { get; set; }
+    public string? Subject { get; set; }
     public string? Text { get; set; }
 }
