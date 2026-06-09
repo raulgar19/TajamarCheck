@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "https://tajamarcheckapi.azurewebsites.net/api",
+    "target": "https://tajamarcheckapi.azurewebsites.net/",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
