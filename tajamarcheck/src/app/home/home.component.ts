@@ -145,10 +145,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Suscribirse a cambios de sesión para actualizar dinámicamente
     this.authSub = this.authService.authState$.subscribe(s => {
-      if (s.username !== this.username || s.role !== this.role) {
+      const currentStudentId = this.authService.getStudentId();
+      if (s.username !== this.username || s.role !== this.role || currentStudentId !== this.studentId) {
         this.username = s.username;
         this.role = s.role;
-        this.studentId = this.authService.getStudentId();
+        this.studentId = currentStudentId;
         if (this.role === 'alumno') {
           this.loadStudentData();
         } else {

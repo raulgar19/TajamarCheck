@@ -75,6 +75,11 @@ export class AuthService {
       localStorage.setItem('email', email);
     }
 
+    const studentIdRaw = profile.idUsuario ?? profile.studentId ?? profile.usuario?.idUsuario ?? profile.usuario?.studentId;
+    if (studentIdRaw !== undefined && studentIdRaw !== null) {
+      localStorage.setItem('studentId', String(studentIdRaw));
+    }
+
     const parsedCourseId = Number(courseIdRaw);
     if (!Number.isNaN(parsedCourseId) && parsedCourseId > 0) {
       localStorage.setItem('courseId', String(parsedCourseId));
@@ -136,8 +141,15 @@ export class AuthService {
   }
 
   getStudentId(): number {
+    const cachedId = localStorage.getItem('studentId');
+    if (cachedId) {
+      const parsed = parseInt(cachedId, 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+
     const username = this.getUsername();
-    const match = username.match(/\d+/);
+    const localPart = username.split('@')[0];
+    const match = localPart.match(/\d+/);
     const parsedId = match ? parseInt(match[0], 10) : 101;
     return parsedId;
   }
@@ -148,6 +160,7 @@ export class AuthService {
     localStorage.removeItem('email');
     localStorage.removeItem('courseId');
     localStorage.removeItem('nombreCompleto');
+    localStorage.removeItem('studentId');
     console.log('AuthService: Sesión eliminada.');
 
     this.authStateSubject.next({

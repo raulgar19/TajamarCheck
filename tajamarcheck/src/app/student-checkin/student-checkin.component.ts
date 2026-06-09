@@ -67,7 +67,11 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
       }
       // Update username/studentId if changed
       this.username = s.username;
-      this.studentId = this.authService.getStudentId();
+      const currentStudentId = this.authService.getStudentId();
+      if (currentStudentId !== this.studentId) {
+        this.studentId = currentStudentId;
+        this.loadRondaStatus();
+      }
     });
   }
 

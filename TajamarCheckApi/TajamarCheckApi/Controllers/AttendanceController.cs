@@ -227,13 +227,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
         }
 
         // Obtener IP del origen
-        var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-        var clientIp = NormalizeIpAddress(rawIp);
-
-        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "localhost")
-        {
-            clientIp = GetPhysicalNetworkIpAddress();
-        }
+        var clientIp = GetClientIpAddress();
 
 
         // Obtener equipo registrado para el alumno
@@ -432,13 +426,7 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
     [HttpGet("equipos/detectar-conexion")]
     public IActionResult DetectarConexion()
     {
-        var rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-        var clientIp = NormalizeIpAddress(rawIp);
-
-        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "localhost")
-        {
-            clientIp = GetPhysicalNetworkIpAddress();
-        }
+        var clientIp = GetClientIpAddress();
 
         var clientHostname = System.Environment.MachineName;
 
@@ -734,6 +722,38 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             101 => "Estudiante Tajamar (Pruebas)",
             _ => $"Estudiante #{studentId}"
         };
+    }
+
+    private string GetClientIpAddress()
+    {
+        string rawIp = "";
+        if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedHeader))
+        {
+            var ipList = forwardedHeader.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (ipList.Length > 0)
+            {
+                rawIp = ipList[0].Trim();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(rawIp) && Request.Headers.TryGetValue("X-Real-IP", out var realIpHeader))
+        {
+            rawIp = realIpHeader.ToString().Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(rawIp))
+        {
+            rawIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        }
+
+        var clientIp = NormalizeIpAddress(rawIp);
+
+        if (clientIp == "127.0.0.1" || clientIp == "::1" || clientIp == "localhost")
+        {
+            clientIp = GetPhysicalNetworkIpAddress();
+        }
+
+        return clientIp;
     }
 
     private string NormalizeIpAddress(string ip)
