@@ -11,8 +11,7 @@ builder.Services.AddOpenApi();
 // Register the DbContext for SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("AttendanceDb")
-        ?? "Server=(localdb)\\mssqllocaldb;Database=CheckingTajamarAttendance;Trusted_Connection=True;TrustServerCertificate=True";
+    var connectionString = builder.Configuration.GetConnectionString("AttendanceDb");
 
     options.UseSqlServer(connectionString);
 });
@@ -30,12 +29,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference().AllowAnonymous();
-}
+app.MapOpenApi();
+app.MapScalarApiReference().AllowAnonymous();
 
 app.UseHttpsRedirection();
 
