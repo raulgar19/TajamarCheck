@@ -119,8 +119,9 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
     this.studentService.detectarConexion().subscribe({
       next: (conn: any) => {
         const detectedHostname = conn.hostname || '';
+        const detectedIp = conn.ip || '';
         const nombreCompleto = this.authService.getNombreCompleto() || `Estudiante #${this.studentId}`;
-        this.studentService.ficharAlumno(this.studentId, type, detectedHostname, nombreCompleto).subscribe({
+        this.studentService.ficharAlumno(this.studentId, type, detectedHostname, detectedIp, nombreCompleto).subscribe({
           next: (res: any) => {
             this.loading = false;
             this.checkinStatus = 'success';

@@ -44,12 +44,13 @@ export class StudentService {
     return this.http.get<any>('/api/attendance/equipos/detectar-conexion');
   }
 
-  ficharAlumno(studentId: number, type: string, devHostname?: string, nombreUsuario?: string): Observable<any> {
+  ficharAlumno(studentId: number, type: string, devHostname?: string, devIp?: string, nombreUsuario?: string): Observable<any> {
     return this.http.post<any>('/api/attendance/fichar/alumno', {
       studentId: studentId,
       nombreUsuario: nombreUsuario,
       type: type,
-      devHostname: devHostname
+      devHostname: devHostname,
+      devIp: devIp
     });
   }
 

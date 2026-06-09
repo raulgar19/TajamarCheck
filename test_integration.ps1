@@ -102,6 +102,7 @@ $res9 = Test-Endpoint -Method Post -Path "fichar/alumno" -Body @{
     studentId = 101
     type = "Entrada"
     devHostname = "AULA-01-PC-05"
+    devIp = "10.203.1.20"
 }
 
 # 10. Verify Check-in with correct PC assignment
@@ -110,6 +111,7 @@ $res10 = Test-Endpoint -Method Post -Path "fichar/alumno" -Body @{
     studentId = 101
     type = "Entrada"
     devHostname = "AULA-01-PC-06"
+    devIp = "10.203.1.21"
 }
 
 Write-Host "`n=============================================" -ForegroundColor Cyan

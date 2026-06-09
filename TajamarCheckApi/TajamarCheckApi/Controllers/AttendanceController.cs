@@ -226,9 +226,13 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             return StatusCode(403, new { success = false, message = "El fichaje autónomo está bloqueado para clases desde casa. El profesor registrará la asistencia manualmente." });
         }
 
-        // Obtener IP del origen
-        var clientIp = GetClientIpAddress();
-
+        // Obtener IP y Hostname pasados desde el front (o fallback si no vienen)
+        var clientIp = NormalizeIpAddress(request.DevIp ?? GetClientIpAddress());
+        var clientHostname = (request.DevHostname ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clientHostname))
+        {
+            clientHostname = "Desconocido";
+        }
 
         // Obtener equipo registrado para el alumno
         var device = await context.EquiposAutorizados
@@ -239,11 +243,18 @@ public sealed class AttendanceController(ApplicationDbContext context) : Control
             return StatusCode(403, new { success = false, message = "Fichaje denegado: No tienes ningún PC registrado a tu cuenta. Debes registrar tu ordenador primero." });
         }
 
-        // Validar IP (permitir coincidencia o localhost para pruebas)
+        // Validar IP y Hostname (permitir coincidencia o localhost para pruebas)
         var normalizedDeviceIp = NormalizeIpAddress(device.IPAsignada);
-        if (normalizedDeviceIp != clientIp && normalizedDeviceIp != "127.0.0.1" && clientIp != "127.0.0.1")
+        var normalizedDeviceHostname = (device.NombreEquipo ?? "").Trim();
+
+        bool ipMatches = normalizedDeviceIp == clientIp || normalizedDeviceIp == "127.0.0.1" || clientIp == "127.0.0.1";
+        bool hostnameMatches = string.Equals(normalizedDeviceHostname, clientHostname, StringComparison.OrdinalIgnoreCase) 
+                               || clientHostname.Equals("localhost", StringComparison.OrdinalIgnoreCase) 
+                               || normalizedDeviceHostname.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+
+        if (!ipMatches || !hostnameMatches)
         {
-            return StatusCode(403, new { success = false, message = $"Fichaje denegado: Tu IP de conexión '{clientIp}' no coincide con la IP registrada de tu ordenador '{device.NombreEquipo}' ({device.IPAsignada})." });
+            return StatusCode(403, new { success = false, message = $"Fichaje denegado: Los datos de tu dispositivo no coinciden con el equipo registrado. Detectado: Hostname '{clientHostname}', IP '{clientIp}'. Registrado: Hostname '{device.NombreEquipo}', IP '{device.IPAsignada}'." });
         }
 
         // Calcular estado de asistencia basado en la hora de apertura
@@ -918,6 +929,7 @@ public sealed class FichajeAlumnoRequest
     public string? NombreUsuario { get; set; }
     public string Type { get; set; } = string.Empty; // "Entrada" o "Salida"
     public string? DevHostname { get; set; }
+    public string? DevIp { get; set; }
 }
 
 public sealed class RegistrarEquipoAlumnoRequest
