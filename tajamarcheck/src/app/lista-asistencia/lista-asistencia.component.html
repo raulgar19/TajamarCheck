@@ -116,53 +116,109 @@
     <!-- Lista de Incidencias -->
     <div *ngIf="!loading && filteredIncidences.length > 0" class="space-y-4">
       <div *ngFor="let inc of filteredIncidences" 
-           class="glass-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition duration-200"
+           class="glass-card p-5 flex flex-col gap-4 transition duration-200"
            [ngClass]="{
              'card-accent-ruby bg-rose-500/5 hover:bg-rose-500/10 border-rose-500/15': inc.type === 'Falta',
              'card-accent-amber bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/15': inc.type === 'Retraso'
            }">
         
-        <!-- Detalles Principales (Icono + Asignatura/Info) -->
-        <div class="flex items-center gap-4">
-          <!-- Icono / Badge de tipo -->
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shadow-lg"
-               [ngClass]="{
-                 'bg-rose-500 text-white shadow-rose-500/10 border border-rose-400/20': inc.type === 'Falta',
-                 'bg-amber-500 text-white shadow-amber-500/10 border border-amber-400/20': inc.type === 'Retraso'
-               }">
-            {{ inc.type === 'Falta' ? 'F' : 'R' }}
-          </div>
-          
-          <!-- Asignatura y fecha/hora -->
-          <div class="space-y-1">
-            <h4 class="text-sm font-black text-slate-100 leading-tight">{{ inc.subject }}</h4>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-slate-450 uppercase tracking-wider">
-              <span>📅 {{ inc.date | date:'dd LLL yyyy' }}</span>
-              <span class="text-slate-600">•</span>
-              <span>⏰ {{ inc.time }}</span>
-              <span *ngIf="inc.type === 'Retraso'" class="text-slate-600">•</span>
-              <span *ngIf="inc.type === 'Retraso'" class="text-amber-400 font-black">⚠️ {{ inc.minutes }} minutos tarde</span>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <!-- Detalles Principales (Icono + Asignatura/Info) -->
+          <div class="flex items-center gap-4">
+            <!-- Icono / Badge de tipo -->
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shadow-lg"
+                 [ngClass]="{
+                   'bg-rose-500 text-white shadow-rose-500/10 border border-rose-400/20': inc.type === 'Falta',
+                   'bg-amber-500 text-white shadow-amber-500/10 border border-amber-400/20': inc.type === 'Retraso'
+                 }">
+              {{ inc.type === 'Falta' ? 'F' : 'R' }}
             </div>
+            
+            <!-- Asignatura y fecha/hora -->
+            <div class="space-y-1">
+              <h4 class="text-sm font-black text-slate-100 leading-tight">{{ inc.subject }}</h4>
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-slate-450 uppercase tracking-wider">
+                <span>📅 {{ inc.date | date:'dd LLL yyyy' }}</span>
+                <span class="text-slate-600">•</span>
+                <span>⏰ {{ inc.time }}</span>
+                <span *ngIf="inc.type === 'Retraso'" class="text-slate-600">•</span>
+                <span *ngIf="inc.type === 'Retraso'" class="text-amber-400 font-black">⚠️ {{ inc.minutes }} minutos tarde</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notas / Comentarios del Fichaje o Falta -->
+          <div class="flex items-center justify-between md:justify-end gap-3 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+            <span class="text-xs text-slate-400 font-semibold italic max-w-sm text-left md:text-right" *ngIf="inc.type !== 'Falta'">
+              {{ inc.text }}
+            </span>
+            <span class="text-[9px] font-black px-2.5 py-1.5 rounded-lg border whitespace-nowrap"
+                  [ngClass]="{
+                    'bg-rose-500/10 text-rose-400 border-rose-500/20': inc.type === 'Falta',
+                    'bg-amber-500/10 text-amber-400 border-amber-500/20': inc.type === 'Retraso'
+                  }">
+              {{ inc.type === 'Falta' ? 'FALTA' : 'RETRASO' }}
+            </span>
           </div>
         </div>
 
-        <!-- Notas / Comentarios del Fichaje o Falta -->
-        <div class="flex items-center justify-between md:justify-end gap-3 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
-          <span class="text-xs text-slate-400 font-semibold italic max-w-sm text-left md:text-right">
-            {{ inc.text }}
-          </span>
-          <span class="text-[9px] font-black px-2.5 py-1.5 rounded-lg border whitespace-nowrap"
-                [ngClass]="{
-                  'bg-rose-500/10 text-rose-400 border-rose-500/20': inc.type === 'Falta',
-                  'bg-amber-500/10 text-amber-400 border-amber-500/20': inc.type === 'Retraso'
-                }">
-            {{ inc.type === 'Falta' ? 'FALTA' : 'RETRASO' }}
-          </span>
+        <!-- Sección de justificación (solo para Faltas) -->
+        <div *ngIf="inc.type === 'Falta'" class="flex flex-col sm:flex-row sm:items-center justify-between border-t border-rose-500/10 pt-4 gap-3">
+          <div class="text-xs text-slate-400 font-semibold">
+            <span class="text-slate-500 font-bold block mb-1 text-[9px] tracking-wider">JUSTIFICACIÓN PRESENTADA:</span>
+            <span *ngIf="inc.justificacion" class="italic text-slate-200">"{{ inc.justificacion }}"</span>
+            <span *ngIf="!inc.justificacion" class="text-rose-400/60 italic">No se ha presentado justificación para esta falta.</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span *ngIf="inc.estaJustificada" class="text-[9px] font-black px-2.5 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg">
+              JUSTIFICADA
+            </span>
+            <span *ngIf="inc.justificacion && !inc.estaJustificada" class="text-[9px] font-black px-2.5 py-1.5 bg-amber-500/10 text-amber-450 border border-amber-500/20 rounded-lg">
+              PENDIENTE APROBACIÓN
+            </span>
+            <button *ngIf="!inc.estaJustificada" (click)="abrirModalJustificar(inc)" class="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-black transition active:scale-95 cursor-pointer">
+              {{ inc.justificacion ? 'Modificar Justificación' : 'Justificar Falta' }}
+            </button>
+          </div>
         </div>
 
       </div>
     </div>
 
+  </div>
+
+  <!-- MODAL JUSTIFICAR FALTA -->
+  <div *ngIf="mostrarModalJustificar" class="fixed inset-0 bg-[#05080f]/80 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-modal-bg">
+    <div class="bg-slate-900/90 border border-white/10 shadow-2xl rounded-3xl p-6 md:p-8 max-w-md w-full animate-modal-card backdrop-blur-xl">
+      <div class="mb-5 flex justify-between items-center select-none">
+        <div>
+          <h3 class="text-lg font-black text-white">Justificar Falta</h3>
+          <p class="text-xs text-slate-400 font-semibold mt-0.5">Introduce el motivo de tu falta de asistencia</p>
+        </div>
+        <button (click)="mostrarModalJustificar = false" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-455 hover:text-white text-xs font-bold border-0 cursor-pointer transition flex items-center justify-center">
+          ✕
+        </button>
+      </div>
+
+      <form (ngSubmit)="guardarJustificacion()" class="space-y-4">
+        <div>
+          <label class="block text-[9px] font-bold text-slate-455 uppercase tracking-widest mb-1.5 pl-1 select-none font-sans">Texto de la Justificación</label>
+          <textarea [(ngModel)]="justificacionForm.texto" name="textoJustificacion" rows="4" maxlength="500" required
+                    placeholder="Ej: Cita médica familiar, problemas de salud, gestiones administrativas justificadas..."
+                    class="w-full px-4 py-3 bg-slate-950/80 border border-white/10 hover:border-indigo-500/40 focus:border-indigo-500 rounded-2xl text-xs text-white font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 placeholder-slate-600 transition resize-none"></textarea>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <button type="button" (click)="mostrarModalJustificar = false" class="flex-1 py-3 bg-white/5 hover:bg-white/10 text-xs font-black text-slate-300 hover:text-white rounded-2xl border border-white/10 hover:border-white/20 cursor-pointer active:scale-95 transition">
+            Cancelar
+          </button>
+          <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-xs font-black text-white rounded-2xl border-0 cursor-pointer active:scale-95 transition shadow-lg shadow-indigo-500/20">
+            Enviar Justificación
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
 </main>

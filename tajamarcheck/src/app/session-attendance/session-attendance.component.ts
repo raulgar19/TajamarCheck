@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -10,7 +11,7 @@ import { AuthState } from '../services/auth.service';
 @Component({
   selector: 'app-session-attendance',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './session-attendance.component.html',
   styleUrl: './session-attendance.component.css'
 })
@@ -23,6 +24,22 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
   username = '';
   role = '';
   private authSub?: Subscription;
+
+  // Toast notification
+  toast = {
+    show: false,
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+  };
+  private toastTimeout: any;
+
+  // Modal de justificación (profesor)
+  mostrarModalJustificar = false;
+  justificacionForm = {
+    idAsistencia: 0,
+    studentName: '',
+    texto: ''
+  };
 
   constructor(
     private authService: AuthService,
@@ -50,15 +67,9 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
     // Si viene sessionId por query params, seleccionarla cuando se carguen las sesiones
     this.route.queryParams.subscribe(params => {
       const sid = params['sessionId'] as string | undefined;
-      if (sid) {
-        // Si ya hay sesiones cargadas, intentar seleccionar, si no, se seleccionará tras la carga
-        if (this.sessions && this.sessions.length > 0) {
-          const found = this.sessions.find(s => (s.id || s.Id || s.Id) == sid);
-          if (found) this.selectSession(found);
-        } else {
-          // esperar a que loadSessions haga el trabajo (loadSessions ya pone sessions)
-          // aquí no hacemos nada extra; loadSessions llamará a select cuando el usuario haga click
-        }
+      if (sid && this.sessions && this.sessions.length > 0) {
+        const found = this.sessions.find(s => (s.id || s.Id) == sid);
+        if (found) this.selectSession(found);
       }
     });
 
@@ -73,6 +84,13 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.authSub?.unsubscribe();
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+  }
+
+  showToast(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') {
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    this.toast = { show: true, message, type };
+    this.toastTimeout = setTimeout(() => { this.toast.show = false; }, 4000);
   }
 
   loadSessions() {
@@ -120,6 +138,41 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
     });
   }
 
+  recargarSesionActual() {
+    this.studentService.getRondaActual().subscribe({
+      next: (r) => {
+        if (r?.id) {
+          const found = this.sessions.find(s => (s.id || s.Id) == r.id);
+          if (found) {
+            this.selectSession(found);
+          } else {
+            // Si no está en la lista, recargar todo
+            this.loadSessions();
+          }
+        } else {
+          this.showToast('No hay sesión abierta en este momento.', 'warning');
+        }
+      },
+      error: () => this.showToast('No se pudo conectar con el servidor.', 'error')
+    });
+  }
+
+  // ==========================================
+  // GETTERS Y HELPERS
+  // ==========================================
+
+  get uniqueStudentsCount(): number {
+    return new Set(this.attendees.map((a: any) => a.studentId)).size;
+  }
+
+  get presentesCount(): number {
+    return this.attendees.filter((a: any) => a.tipo === 'Entrada' || a.tipo === 'Presente').length;
+  }
+
+  get faltasCount(): number {
+    return this.attendees.filter((a: any) => a.tipo === 'Falta').length;
+  }
+
   getSessionId(session: any): string {
     return session?.id || session?.Id || '';
   }
@@ -135,5 +188,74 @@ export class SessionAttendanceComponent implements OnInit, OnDestroy {
   isSelectedSession(session: any): boolean {
     if (!this.selectedSession || !session) return false;
     return this.getSessionId(this.selectedSession) === this.getSessionId(session);
+  }
+
+  getStudentName(studentId: any): string {
+    const idNum = Number(studentId);
+    const students: { [key: number]: string } = {
+      1: 'Raúl García',
+      2: 'Sofia Martín',
+      3: 'Carlos Gomez',
+      4: 'Ana Belén Ortiz',
+      101: 'Estudiante Tajamar (Pruebas)'
+    };
+    return students[idNum] || `Alumno #${studentId}`;
+  }
+
+  getTipoBadgeClass(tipo: string): string {
+    if (tipo === 'Entrada' || tipo === 'Presente') return 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20';
+    if (tipo === 'Retraso') return 'bg-amber-500/10 text-amber-300 border border-amber-500/20';
+    if (tipo === 'Falta') return 'bg-rose-500/10 text-rose-300 border border-rose-500/20';
+    return 'bg-white/5 text-slate-400 border border-white/10';
+  }
+
+  getTipoLabel(tipo: string): string {
+    if (tipo === 'Entrada') return 'Presente';
+    return tipo || '-';
+  }
+
+  // ==========================================
+  // JUSTIFICACIÓN (ACCIONES DEL PROFESOR)
+  // ==========================================
+
+  abrirModalJustificar(attendee: any) {
+    this.justificacionForm = {
+      idAsistencia: attendee.id,
+      studentName: attendee.studentName || this.getStudentName(attendee.studentId),
+      texto: attendee.text || ''
+    };
+    this.mostrarModalJustificar = true;
+  }
+
+  guardarJustificacion() {
+    if (!this.justificacionForm.texto.trim()) {
+      this.showToast('Por favor, escribe el motivo de la justificación.', 'warning');
+      return;
+    }
+    this.studentService.justificarFaltaTeacher(
+      this.justificacionForm.idAsistencia,
+      this.justificacionForm.texto.trim()
+    ).subscribe({
+      next: (res) => {
+        this.showToast(res.message || 'Falta justificada con éxito.', 'success');
+        this.mostrarModalJustificar = false;
+        this.loadAttendees(this.getSessionId(this.selectedSession));
+      },
+      error: (err) => {
+        this.showToast('Error al justificar la falta: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  revisarJustificacion(attendeeId: number, aceptar: boolean) {
+    this.studentService.revisarJustificacion(attendeeId, aceptar).subscribe({
+      next: (res) => {
+        this.showToast(res.message || (aceptar ? 'Justificación aceptada.' : 'Justificación rechazada.'), 'success');
+        this.loadAttendees(this.getSessionId(this.selectedSession));
+      },
+      error: (err) => {
+        this.showToast('Error al revisar la justificación: ' + (err.error?.message || err.message), 'error');
+      }
+    });
   }
 }

@@ -38,6 +38,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     nombre: '',
     ip: '10.203.0.1'
   };
+
+  mostrarModalJustificar = false;
+  justificacionForm = {
+    idAsistencia: 0,
+    texto: ''
+  };
+
+  mostrarModalRondaRegistro = false;
+  mostrarModalRondaCambioSitio = false;
+  mostrarModalMapaSitios = false;
   
   // Navigation for Multi-Month Calendar
   currentCalendarDate = new Date();
@@ -85,6 +95,24 @@ export class HomeComponent implements OnInit, OnDestroy {
     minutes: 15,
     text: ''
   };
+
+  // Toast Notification State
+  toast = {
+    show: false,
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+  };
+  private toastTimeout: any;
+
+  showToast(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+    this.toast = { show: true, message, type };
+    this.toastTimeout = setTimeout(() => {
+      this.toast.show = false;
+    }, 4000);
+  }
 
   constructor(
     private router: Router,
@@ -203,9 +231,25 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   recalculatePercentage() {
     const totalDays = 60; // Simulación de total de días cursados
-    const missed = this.absencesCount + (this.delaysCount * 0.25); // Los retrasos descuentan un cuarto de falta
+    const missed = this.absencesCount + Math.floor(this.delaysCount / 2);
     const pct = ((totalDays - missed) / totalDays) * 100;
     this.attendancePercentage = parseFloat(Math.max(0, Math.min(100, pct)).toFixed(1));
+  }
+
+  matchDate(dateStr: any, d: number, month: number, year: number): boolean {
+    if (!dateStr) return false;
+    try {
+      const dateOnly = dateStr.toString().split('T')[0];
+      const parts = dateOnly.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        return y === year && m === month && day === d;
+      }
+    } catch (e) {}
+    const dDate = new Date(dateStr);
+    return dDate.getDate() === d && dDate.getMonth() === month && dDate.getFullYear() === year;
   }
 
   generateCalendar() {
@@ -227,25 +271,24 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Rellenar días del mes
     for (let d = 1; d <= totalDaysInMonth; d++) {
-      const cellDate = new Date(year, month, d);
-      
       // Buscar falta en este día
-      const hasAbsence = this.absences.some(a => {
-        const dDate = new Date(a.date);
-        return dDate.getDate() === d && dDate.getMonth() === month && dDate.getFullYear() === year;
-      });
+      const hasAbsence = this.absences.some(a => this.matchDate(a.date, d, month, year));
 
       // Buscar retraso en este día
-      const hasDelay = this.delays.some(de => {
-        const deDate = new Date(de.date);
-        return deDate.getDate() === d && deDate.getMonth() === month && deDate.getFullYear() === year;
-      });
+      const hasDelay = this.delays.some(de => this.matchDate(de.date, d, month, year));
 
-      let status = 'present';
+      // Buscar presente en este día
+      const hasPresent = this.attendanceLogs.some(l => 
+        l.type.toLowerCase() === 'entrada' && this.matchDate(l.date, d, month, year)
+      );
+
+      let status = 'nodata';
       if (hasAbsence) {
         status = 'absence';
       } else if (hasDelay) {
         status = 'delay';
+      } else if (hasPresent) {
+        status = 'present';
       }
 
       days.push({
@@ -321,23 +364,107 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  abrirRonda() {
-    const courseId = this.authService.getCourseId();
-    console.log('HomeComponent: Abriendo ronda con courseId desde storage:', courseId);
+  abrirRondaRegistro() {
+    this.mostrarModalRondaRegistro = true;
+  }
 
+  confirmarRondaRegistro() {
+    this.mostrarModalRondaRegistro = false;
+    this.loading = true;
+    const courseId = this.authService.getCourseId();
+    this.http.post<any>('/api/attendance/rondas/abrir', {
+      tipoClase: 'Presencial',
+      cursoId: courseId,
+      permitirCambioPC: true,
+      eliminarEquipos: true,
+      desvincularTodos: false
+    }).subscribe({
+      next: (res) => {
+        console.log('Ronda de registro abierta con éxito (equipos eliminados):', res);
+        this.rondaActual = res.data;
+        this.loadTeacherData();
+        this.showToast('Ronda de registro abierta y lista de equipos eliminada.', 'success');
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('Error al abrir ronda de registro:', err);
+        this.showToast('Error al abrir ronda de registro: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  abrirRondaCambioSitio() {
+    this.mostrarModalRondaCambioSitio = true;
+  }
+
+  confirmarRondaCambioSitio() {
+    this.mostrarModalRondaCambioSitio = false;
+    this.loading = true;
+    const courseId = this.authService.getCourseId();
+    this.http.post<any>('/api/attendance/rondas/abrir', {
+      tipoClase: 'Presencial',
+      cursoId: courseId,
+      permitirCambioPC: true,
+      eliminarEquipos: false,
+      desvincularTodos: true
+    }).subscribe({
+      next: (res) => {
+        console.log('Ronda de cambio de sitio abierta con éxito:', res);
+        this.rondaActual = res.data;
+        this.loadTeacherData();
+        this.showToast('Ronda de cambio de sitio abierta con éxito (usuarios desvinculados).', 'success');
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('Error al abrir ronda de cambio de sitio:', err);
+        this.showToast('Error al abrir ronda de cambio de sitio: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  getNombreEstudiante(studentId: number | null | undefined): string {
+    if (!studentId) return 'Libre';
+    const est = this.estudiantesList.find(e => e.id === studentId);
+    return est ? est.name : `Estudiante #${studentId}`;
+  }
+
+  desvincularPcProfesor(eq: any) {
+    const payload = {
+      id: eq.id,
+      nombreDispositivo: eq.nombreDispositivo,
+      direccionIP: eq.direccionIP,
+      studentId: null
+    };
+    this.http.put<any>(`/api/attendance/equipos/${eq.id}`, payload).subscribe({
+      next: () => {
+        this.showToast('Estudiante desvinculado del equipo.', 'success');
+        this.loadEquipos(); // Recargar mapa
+      },
+      error: (err) => {
+        this.showToast('Error al desvincular estudiante: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  abrirSesionFichaje() {
+    this.loading = true;
+    const courseId = this.authService.getCourseId();
     this.http.post<any>('/api/attendance/rondas/abrir', {
       tipoClase: this.rondaTipo,
       cursoId: courseId,
-      permitirCambioPC: this.rondaPermitirCambioPC
+      permitirCambioPC: false,
+      desvincularTodos: false
     }).subscribe({
       next: (res) => {
-        console.log('Ronda abierta/actualizada con éxito:', res);
+        console.log('Sesión de fichaje abierta con éxito:', res);
         this.rondaActual = res.data;
-        this.loadTeacherData(); // Recargar historial
+        this.loadTeacherData();
+        this.showToast('Sesión de fichaje abierta con éxito.', 'success');
       },
       error: (err) => {
-        console.error('Error al abrir ronda:', err);
-        alert('Error al abrir ronda: ' + (err.error?.message || err.message));
+        this.loading = false;
+        console.error('Error al abrir sesión de fichaje:', err);
+        this.showToast('Error al abrir sesión de fichaje: ' + (err.error?.message || err.message), 'error');
       }
     });
   }
@@ -369,7 +496,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   guardarEquipo() {
     if (!this.equipoForm.nombreDispositivo.trim() || !this.equipoForm.direccionIP.trim()) {
-      alert('Todos los campos son obligatorios.');
+      this.showToast('Todos los campos son obligatorios.', 'warning');
       return;
     }
 
@@ -379,8 +506,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: () => {
           this.mostrarModalEquipo = false;
           this.loadEquipos();
+          this.showToast('Dispositivo modificado con éxito.', 'success');
         },
-        error: (err) => alert('Error al editar equipo: ' + (err.error?.message || err.message))
+        error: (err) => this.showToast('Error al editar equipo: ' + (err.error?.message || err.message), 'error')
       });
     } else {
       // Crear
@@ -389,8 +517,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: () => {
           this.mostrarModalEquipo = false;
           this.loadEquipos();
+          this.showToast('Dispositivo registrado con éxito.', 'success');
         },
-        error: (err) => alert('Error al registrar equipo: ' + (err.error?.message || err.message))
+        error: (err) => this.showToast('Error al registrar equipo: ' + (err.error?.message || err.message), 'error')
       });
     }
   }
@@ -398,8 +527,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   eliminarEquipo(id: string) {
     if (confirm('¿Estás seguro de eliminar este dispositivo de la lista blanca?')) {
       this.http.delete(`/api/attendance/equipos/${id}`).subscribe({
-        next: () => this.loadEquipos(),
-        error: (err) => alert('Error al eliminar equipo: ' + err.message)
+        next: () => {
+          this.loadEquipos();
+          this.showToast('Dispositivo eliminado con éxito.', 'success');
+        },
+        error: (err) => this.showToast('Error al eliminar equipo: ' + err.message, 'error')
       });
     }
   }
@@ -421,40 +553,30 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   guardarRegistroManual() {
-    if (this.manualForm.type === 'Falta') {
-      const payload = {
-        studentId: this.manualForm.studentId,
-        subject: this.manualForm.subject,
-        date: new Date(this.manualForm.date),
-        time: this.manualForm.time
-      };
-      this.http.post('/api/attendance/absence', payload).subscribe({
-        next: () => {
-          this.mostrarModalManual = false;
-          alert('Falta registrada con éxito.');
-          this.cargarEstadoAlumnosDiario();
-        },
-        error: (err) => alert('Error al registrar falta: ' + err.message)
-      });
-    } else {
-      const payload = {
-        studentId: this.manualForm.studentId,
-        type: 'Retraso',
-        subject: this.manualForm.subject,
-        date: new Date(this.manualForm.date),
-        time: this.manualForm.time,
-        minutes: this.manualForm.minutes,
-        text: `${this.manualForm.minutes} min de retraso. ${this.manualForm.text}`
-      };
-      this.http.post('/api/attendance/log', payload).subscribe({
-        next: () => {
-          this.mostrarModalManual = false;
-          alert('Retraso registrado con éxito.');
-          this.cargarEstadoAlumnosDiario();
-        },
-        error: (err) => alert('Error al registrar retraso: ' + err.message)
-      });
+    if (!this.rondaActual) {
+      this.showToast("No hay ninguna ronda activa para el día de hoy. Abre una ronda antes de registrar asistencia manual.", "warning");
+      return;
     }
+
+    const typeMapped = this.manualForm.type; // 'Falta' o 'Retraso' o 'Presente'
+    const payload = {
+      studentId: this.manualForm.studentId,
+      sessionId: this.rondaActual.id,
+      type: typeMapped,
+      minutes: typeMapped === 'Retraso' ? this.manualForm.minutes : undefined,
+      text: typeMapped === 'Retraso' 
+        ? `${this.manualForm.minutes} min de retraso. ${this.manualForm.text}` 
+        : (this.manualForm.text || 'Pase de lista manual')
+    };
+
+    this.studentService.registrarAsistenciaManual(payload).subscribe({
+      next: () => {
+        this.mostrarModalManual = false;
+        this.showToast(`${typeMapped} registrado con éxito.`, 'success');
+        this.cargarEstadoAlumnosDiario();
+      },
+      error: (err) => this.showToast('Error al registrar asistencia: ' + (err.error?.message || err.message), 'error')
+    });
   }
 
   loadMiPcAsignado() {
@@ -471,6 +593,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   abrirModalVincularPc() {
+    if (this.miPcAsignado) {
+      this.showToast('Ya tienes un PC asignado. No se permite cambiar el PC.', 'warning');
+      return;
+    }
     this.mostrarModalVincularPc = true;
     this.http.get<any>('/api/attendance/equipos/detectar-conexion').subscribe({
       next: (res) => {
@@ -487,7 +613,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   registrarMiPc() {
     if (!this.miPcForm.nombre.trim() || !this.miPcForm.ip.trim()) {
-      alert('Todos los campos son obligatorios.');
+      this.showToast('Todos los campos son obligatorios.', 'warning');
       return;
     }
     this.http.post<any>('/api/attendance/equipos/registrar-alumno', {
@@ -496,12 +622,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       direccionIP: this.miPcForm.ip.trim()
     }).subscribe({
       next: (res) => {
-        alert(res.message);
+        this.showToast(res.message, 'success');
         this.mostrarModalVincularPc = false;
         this.loadStudentData(); // Recargar datos del alumno
       },
       error: (err) => {
-        alert('Error al registrar PC: ' + (err.error?.message || err.message));
+        this.showToast('Error al registrar PC: ' + (err.error?.message || err.message), 'error');
       }
     });
   }
@@ -509,7 +635,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   cargarEstadoAlumnosDiario() {
     this.studentService.getDiario().subscribe({
       next: (res) => {
-        this.estudiantesEstado = this.estudiantesList.map(est => {
+        const processedIds = new Set<number>();
+        const estados = this.estudiantesList.map(est => {
+          processedIds.add(est.id);
           const studentLogs = res.logs.filter((l: any) => l.studentId === est.id);
           const studentAbsence = res.absences.find((a: any) => a.studentId === est.id);
 
@@ -547,6 +675,57 @@ export class HomeComponent implements OnInit, OnDestroy {
             absence: studentAbsence
           };
         });
+
+        // Dynamic student loading from daily logs/absences
+        const allLogs = [...(res.logs || []), ...(res.absences || [])];
+        allLogs.forEach((item: any) => {
+          const sId = Number(item.studentId);
+          if (!processedIds.has(sId)) {
+            processedIds.add(sId);
+
+            const studentLogs = res.logs.filter((l: any) => Number(l.studentId) === sId);
+            const studentAbsence = res.absences.find((a: any) => Number(a.studentId) === sId);
+
+            const name = item.studentName || `Estudiante #${sId}`;
+
+            let estado = 'Sin Registrar';
+            let detalle = '';
+
+            if (studentAbsence) {
+              estado = 'Falta';
+              detalle = `Falta registrada a las ${studentAbsence.time}`;
+            } else if (studentLogs.length > 0) {
+              const tieneEntrada = studentLogs.some((l: any) => l.type === 'Entrada');
+              const tieneSalida = studentLogs.some((l: any) => l.type === 'Salida');
+              const retraso = studentLogs.find((l: any) => l.type === 'Retraso');
+
+              if (retraso) {
+                estado = 'Retraso';
+                detalle = `Retraso de ${retraso.minutes} min a las ${retraso.time}`;
+              } else if (tieneEntrada && tieneSalida) {
+                estado = 'Fichado (Completo)';
+                detalle = `Entrada y Salida registradas`;
+              } else if (tieneEntrada) {
+                estado = 'Fichado (Entrada)';
+                detalle = `Entrada registrada a las ${studentLogs.find((l: any) => l.type === 'Entrada').time}`;
+              } else if (tieneSalida) {
+                estado = 'Fichado (Salida)';
+                detalle = `Salida registrada a las ${studentLogs.find((l: any) => l.type === 'Salida').time}`;
+              }
+            }
+
+            estados.push({
+              id: sId,
+              name,
+              estado,
+              detalle,
+              logs: studentLogs,
+              absence: studentAbsence
+            });
+          }
+        });
+
+        this.estudiantesEstado = estados;
       },
       error: (err) => console.error('Error al cargar estado diario de alumnos:', err)
     });
@@ -555,18 +734,21 @@ export class HomeComponent implements OnInit, OnDestroy {
   ficharManual(studentId: number, type: 'Entrada' | 'Salida') {
     if (!this.rondaActual) return;
     this.loading = true;
+    const est = this.estudiantesList.find(e => e.id === studentId);
+    const nombreUsuario = est ? est.name : `Estudiante #${studentId}`;
     this.studentService.registrarAsistenciaManual({
       studentId,
       sessionId: this.rondaActual.id,
-      type
+      type,
+      nombreUsuario
     }).subscribe({
       next: (res) => {
-        console.log(res.mensaje);
+        this.showToast(res.mensaje || 'Fichaje manual registrado con éxito.', 'success');
         this.cargarEstadoAlumnosDiario();
       },
       error: (err) => {
         this.loading = false;
-        alert('Error al realizar fichaje manual: ' + (err.error?.message || err.message));
+        this.showToast('Error al realizar fichaje manual: ' + (err.error?.message || err.message), 'error');
       }
     });
   }
@@ -574,18 +756,21 @@ export class HomeComponent implements OnInit, OnDestroy {
   ponerFaltaManual(studentId: number) {
     if (!this.rondaActual) return;
     this.loading = true;
+    const est = this.estudiantesList.find(e => e.id === studentId);
+    const nombreUsuario = est ? est.name : `Estudiante #${studentId}`;
     this.studentService.registrarAsistenciaManual({
       studentId,
       sessionId: this.rondaActual.id,
-      type: 'Falta'
+      type: 'Falta',
+      nombreUsuario
     }).subscribe({
       next: (res) => {
-        console.log(res.mensaje);
+        this.showToast(res.mensaje || 'Falta manual registrada con éxito.', 'success');
         this.cargarEstadoAlumnosDiario();
       },
       error: (err) => {
         this.loading = false;
-        alert('Error al registrar falta manual: ' + (err.error?.message || err.message));
+        this.showToast('Error al registrar falta manual: ' + (err.error?.message || err.message), 'error');
       }
     });
   }
@@ -596,25 +781,28 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (minutesStr === null) return;
     const minutes = parseInt(minutesStr, 10);
     if (isNaN(minutes) || minutes <= 0) {
-      alert('Por favor introduce un número de minutos válido mayor a 0.');
+      this.showToast('Por favor introduce un número de minutos válido mayor a 0.', 'warning');
       return;
     }
 
     this.loading = true;
+    const est = this.estudiantesList.find(e => e.id === studentId);
+    const nombreUsuario = est ? est.name : `Estudiante #${studentId}`;
     this.studentService.registrarAsistenciaManual({
       studentId,
       sessionId: this.rondaActual.id,
       type: 'Retraso',
       minutes: minutes,
-      text: `${minutes} min de retraso (Pase manual)`
+      text: `${minutes} min de retraso (Pase manual)`,
+      nombreUsuario
     }).subscribe({
       next: (res) => {
-        console.log(res.mensaje);
+        this.showToast(res.mensaje || 'Retraso manual registrado con éxito.', 'success');
         this.cargarEstadoAlumnosDiario();
       },
       error: (err) => {
         this.loading = false;
-        alert('Error al registrar retraso manual: ' + (err.error?.message || err.message));
+        this.showToast('Error al registrar retraso manual: ' + (err.error?.message || err.message), 'error');
       }
     });
   }
@@ -626,12 +814,47 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.studentService.clearDiario(studentId).subscribe({
       next: (res) => {
-        console.log(res.mensaje);
+        this.showToast(res.mensaje || 'Registros de asistencia borrados con éxito.', 'success');
         this.cargarEstadoAlumnosDiario();
       },
       error: (err) => {
         this.loading = false;
-        alert('Error al limpiar registros diarios: ' + (err.error?.message || err.message));
+        this.showToast('Error al limpiar registros diarios: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  abrirModalJustificar(abs: any) {
+    this.justificacionForm.idAsistencia = abs.id;
+    this.justificacionForm.texto = abs.justificacion || '';
+    this.mostrarModalJustificar = true;
+  }
+
+  guardarJustificacion() {
+    if (!this.justificacionForm.texto.trim()) {
+      this.showToast('Por favor, escribe un texto para justificar la falta.', 'warning');
+      return;
+    }
+    this.studentService.justificarFalta(this.justificacionForm.idAsistencia, this.justificacionForm.texto.trim()).subscribe({
+      next: (res) => {
+        this.showToast(res.message || 'Justificación enviada correctamente.', 'success');
+        this.mostrarModalJustificar = false;
+        this.loadStudentData(); // Recargar datos
+      },
+      error: (err) => {
+        this.showToast('Error al justificar falta: ' + (err.error?.message || err.message), 'error');
+      }
+    });
+  }
+
+  revisarJustificacion(absenceId: number, aceptar: boolean) {
+    this.studentService.revisarJustificacion(absenceId, aceptar).subscribe({
+      next: (res) => {
+        this.showToast(res.message || (aceptar ? 'Justificación aceptada.' : 'Justificación rechazada.'), 'success');
+        this.cargarEstadoAlumnosDiario(); // Recargar datos del profesor
+      },
+      error: (err) => {
+        this.showToast('Error al revisar justificación: ' + (err.error?.message || err.message), 'error');
       }
     });
   }

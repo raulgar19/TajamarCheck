@@ -20,19 +20,21 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
   role = 'alumno';
   loading = false;
   private authSub?: Subscription;
-  
+
   // Status state
   rondaActual: any = null;
   checkinStatus: 'idle' | 'success' | 'error' = 'idle';
   statusMessage = '';
-  
+  yaFicho = false;     // true when the student already has a check-in for today's session
+  fichajeHoy: any = null; // the existing check-in record if any
+
 
 
   constructor(
     private authService: AuthService,
     private studentService: StudentService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit() {
     if (!this.authService.isLoggedIn()) {
@@ -77,12 +79,33 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
     this.studentService.getRondaActual().subscribe({
       next: (ronda) => {
         this.rondaActual = ronda;
+        if (ronda?.id) {
+          // Check whether this student already has a record in today's session
+          this.studentService.getFichajesPorSesion(String(ronda.id)).subscribe({
+            next: (res: any) => {
+              const registros: any[] = res?.data || [];
+              const mioRegistro = registros.find((f: any) => Number(f.studentId) === this.studentId);
+              if (mioRegistro) {
+                this.yaFicho = true;
+                this.fichajeHoy = mioRegistro;
+                this.checkinStatus = 'success';
+                this.statusMessage = `Ya has fichado hoy a las ${new Date(mioRegistro.fechaHora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} (${mioRegistro.metodo || 'Automático'}).`;
+              }
+            },
+            error: () => {} // silently ignore — session may have no records yet
+          });
+        }
       },
       error: (err) => console.error('Error al cargar la ronda de hoy:', err)
     });
   }
 
   fichar(type: 'Entrada' | 'Salida') {
+    if (this.yaFicho) {
+      this.checkinStatus = 'error';
+      this.statusMessage = 'Ya has registrado tu asistencia para la sesión de hoy. No es posible fichar de nuevo.';
+      return;
+    }
     this.loading = true;
     this.checkinStatus = 'idle';
     this.statusMessage = '';
@@ -92,13 +115,12 @@ export class StudentCheckinComponent implements OnInit, OnDestroy {
     this.studentService.detectarConexion().subscribe({
       next: (conn: any) => {
         const detectedHostname = conn.hostname || '';
-        const detectedIp = conn.ip || '';
-        console.log(`Conexión detectada -> IP: ${detectedIp}, Hostname: ${detectedHostname}`);
-
-        this.studentService.ficharAlumno(this.studentId, type, detectedHostname).subscribe({
+        const nombreCompleto = this.authService.getNombreCompleto() || `Estudiante #${this.studentId}`;
+        this.studentService.ficharAlumno(this.studentId, type, detectedHostname, nombreCompleto).subscribe({
           next: (res: any) => {
             this.loading = false;
             this.checkinStatus = 'success';
+            this.yaFicho = true;
             this.statusMessage = `¡Fichaje de ${type} realizado con éxito! Registrado desde ${res.hostname} (${res.ip}).`;
           },
           error: (err: any) => {

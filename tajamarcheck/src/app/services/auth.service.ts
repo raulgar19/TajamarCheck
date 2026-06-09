@@ -82,6 +82,13 @@ export class AuthService {
       console.warn('AuthService: courseId recibido pero no válido:', courseIdRaw);
     }
 
+    const nombre = profile.nombre || profile.usuario?.nombre || '';
+    const apellidos = profile.apellidos || profile.usuario?.apellidos || '';
+    const nombreCompleto = `${nombre} ${apellidos}`.trim();
+    if (nombreCompleto) {
+      localStorage.setItem('nombreCompleto', nombreCompleto);
+    }
+
     let resolvedRole = this.getRole();
     if (roleRaw) {
       resolvedRole = roleRaw.toString().toLowerCase().includes('prof') || roleRaw.toString().toLowerCase().includes('admin')
@@ -105,6 +112,10 @@ export class AuthService {
 
   getEmail(): string {
     return localStorage.getItem('email') || '';
+  }
+
+  getNombreCompleto(): string {
+    return localStorage.getItem('nombreCompleto') || '';
   }
 
   getCourseId(): number {
@@ -136,6 +147,7 @@ export class AuthService {
     localStorage.removeItem('role');
     localStorage.removeItem('email');
     localStorage.removeItem('courseId');
+    localStorage.removeItem('nombreCompleto');
     console.log('AuthService: Sesión eliminada.');
 
     this.authStateSubject.next({

@@ -1,127 +1,356 @@
 <main class="w-full max-w-7xl mx-auto p-4 md:p-8 animate-fadeIn select-none">
-  <div class="glass-card card-accent-indigo p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-    <div class="space-y-2">
-      <div class="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black text-indigo-300 uppercase tracking-widest">
-        Lista de asistencia por sesión
-      </div>
-      <div>
-        <h2 class="text-2xl md:text-3xl font-black tracking-tight">Rondas / Sesiones</h2>
-        <p class="text-xs md:text-sm text-slate-300 font-medium mt-1 max-w-2xl">
-          Abre una sesión para ver quién ha fichado. Si no aparecen asistentes, el sistema mostrará si hay registros en <span class="text-indigo-300 font-bold">Fichajes</span> o en <span class="text-indigo-300 font-bold">AttendanceLogs</span>.
+
+  <!-- ============================== -->
+  <!-- HEADER HERO                    -->
+  <!-- ============================== -->
+  <section class="bg-gradient-to-br from-[#0c0f17] via-[#07090e] to-[#040508] text-white border border-white/5 shadow-2xl rounded-3xl p-6 md:p-8 relative overflow-hidden backdrop-blur-xl mb-6">
+    <div class="absolute -top-16 -right-16 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-16 w-36 h-36 bg-violet-500/5 rounded-full blur-3xl"></div>
+
+    <div class="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+      <div class="space-y-2 max-w-2xl">
+        <div class="inline-flex items-center px-3 py-1 bg-indigo-500/10 border border-indigo-500/25 rounded-lg text-[10px] font-black text-indigo-400 tracking-wider uppercase shadow-md">
+          Gestión de Rondas · Panel Profesor
+        </div>
+        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">Lista de Asistencia por Sesión</h1>
+        <p class="text-slate-300 text-xs md:text-sm font-semibold leading-relaxed">
+          Selecciona una ronda del historial para ver los detalles completos de asistencia, el equipo utilizado y gestionar las justificaciones de faltas.
         </p>
       </div>
-    </div>
 
-    <div class="flex items-center gap-3">
-      <div class="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 text-right">
-        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sesiones</div>
-        <div class="text-lg font-black text-white leading-none mt-1">{{ sessions.length }}</div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button (click)="recargarSesionActual()"
+                class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-xs font-extrabold rounded-xl border-0 cursor-pointer transition btn-interactive shadow-lg shadow-indigo-500/20 whitespace-nowrap">
+          📡 Ver sesión actual
+        </button>
+        <a routerLink="/home"
+           class="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black text-slate-200 rounded-xl transition btn-interactive whitespace-nowrap">
+          ← Inicio
+        </a>
       </div>
-
-      <a routerLink="/home" class="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black text-slate-200 transition btn-interactive">
-        Volver al inicio
-      </a>
     </div>
+  </section>
+
+  <!-- ============================== -->
+  <!-- ERROR BANNER                   -->
+  <!-- ============================== -->
+  <div *ngIf="errorMessage" class="glass-card card-accent-ruby p-4 mb-6 text-sm text-rose-200 font-semibold">
+    ⚠ {{ errorMessage }}
   </div>
 
-  <div *ngIf="errorMessage" class="glass-card card-accent-ruby p-4 mb-6 text-sm text-rose-200">
-    {{ errorMessage }}
-  </div>
-
+  <!-- ============================== -->
+  <!-- MAIN CONTENT GRID              -->
+  <!-- ============================== -->
   <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-    <section class="xl:col-span-4 glass-card p-5 md:p-6">
-      <div class="flex items-center justify-between mb-4">
+
+    <!-- ============================== -->
+    <!-- LEFT PANEL: Session List       -->
+    <!-- ============================== -->
+    <section class="xl:col-span-4 glass-card p-5 md:p-6 flex flex-col gap-4">
+      <div class="flex items-start justify-between">
         <div>
-          <h3 class="text-lg font-black">Sesiones recientes</h3>
-          <p class="text-xs text-slate-400 mt-1">Selecciona una sesión para cargar la lista de asistentes.</p>
+          <h2 class="text-lg font-black text-white">Sesiones</h2>
+          <p class="text-xs text-slate-400 font-semibold mt-0.5">Selecciona una ronda para cargar sus detalles.</p>
         </div>
+        <span class="text-[10px] font-black px-2.5 py-1.5 rounded-full border bg-white/5 text-slate-300 border-white/10 whitespace-nowrap">
+          {{ sessions.length }} rondas
+        </span>
       </div>
 
-      <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+      <div class="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
         <button
           *ngFor="let s of sessions"
           type="button"
           (click)="selectSession(s)"
-          class="session-item w-full text-left p-4 rounded-2xl border transition btn-interactive"
-          [ngClass]="isSelectedSession(s) ? 'bg-indigo-500/10 border-indigo-500/25 shadow-lg shadow-indigo-500/5' : 'bg-white/3 border-white/5 hover:bg-white/5'">
-          <div class="flex items-start justify-between gap-3">
-            <div class="space-y-1">
-              <div class="text-sm font-black text-white tracking-tight">{{ getSessionDate(s) | date:'dd MMM yyyy' }}</div>
-              <div class="text-[11px] text-slate-300 font-semibold uppercase tracking-widest">{{ getSessionType(s) }}</div>
+          class="w-full text-left p-4 rounded-2xl border transition duration-200 btn-interactive cursor-pointer flex items-center justify-between gap-3"
+          [ngClass]="isSelectedSession(s)
+            ? 'bg-indigo-500/10 border-indigo-500/25 shadow-lg shadow-indigo-500/5'
+            : 'bg-white/3 border-white/5 hover:bg-white/5 hover:border-white/10'">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl text-xs font-black border shrink-0"
+                  [ngClass]="getSessionType(s) === 'Presencial'
+                    ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
+                    : 'bg-purple-500/10 text-purple-300 border-purple-500/20'">
+              {{ getSessionType(s) === 'Presencial' ? '🏫' : '🏠' }}
+            </span>
+            <div class="min-w-0">
+              <div class="text-sm font-black text-white tracking-tight truncate">{{ getSessionDate(s) | date:'dd MMM yyyy' }}</div>
+              <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-0.5 truncate">{{ getSessionType(s) }}</div>
             </div>
+          </div>
 
-            <div class="flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="isSelectedSession(s) ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/20' : 'bg-white/5 text-slate-400 border border-white/5'">
-              {{ isSelectedSession(s) ? 'Activa' : 'Abrir' }}
-            </div>
+          <div class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+               [ngClass]="isSelectedSession(s)
+                 ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/20'
+                 : 'bg-white/5 text-slate-400 border border-white/5'">
+            {{ isSelectedSession(s) ? 'Activa' : 'Abrir' }}
           </div>
         </button>
 
-        <div *ngIf="!loading && sessions.length === 0" class="rounded-2xl border border-dashed border-white/10 bg-white/3 p-5 text-sm text-slate-400">
+        <div *ngIf="!loading && sessions.length === 0"
+             class="rounded-2xl border border-dashed border-white/10 bg-white/3 p-5 text-sm text-slate-400 text-center">
           No hay sesiones para mostrar.
         </div>
+
+        <div *ngIf="loading && sessions.length === 0" class="rounded-2xl p-5 text-xs text-slate-400 text-center">
+          Cargando sesiones...
+        </div>
       </div>
     </section>
 
-    <section class="xl:col-span-8 glass-card p-5 md:p-6">
-      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
-        <div>
-          <h3 class="text-lg font-black">Asistentes</h3>
-          <p class="text-xs text-slate-400 mt-1">Resumen de fichajes de la sesión seleccionada.</p>
+    <!-- ============================== -->
+    <!-- RIGHT PANEL: Details           -->
+    <!-- ============================== -->
+    <section class="xl:col-span-8 space-y-5">
+
+      <!-- METRIC CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" *ngIf="selectedSession">
+        <div class="glass-card p-4">
+          <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Tipo de Sesión</span>
+          <h3 class="text-base font-black text-white mt-1.5 leading-tight">{{ getSessionType(selectedSession) }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-1">{{ getSessionDate(selectedSession) | date:'dd MMM yyyy' }}</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Registros</span>
+          <h3 class="text-3xl font-black text-white mt-1.5">{{ attendees.length }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-1">Fichajes en esta sesión</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Alumnos únicos</span>
+          <h3 class="text-3xl font-black text-white mt-1.5">{{ uniqueStudentsCount }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-1">Distintos en la lista</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Faltas</span>
+          <h3 class="text-3xl font-black mt-1.5" [ngClass]="faltasCount > 0 ? 'text-rose-400' : 'text-white'">{{ faltasCount }}</h3>
+          <p class="text-[10px] font-semibold text-slate-400 mt-1">Registros de falta</p>
+        </div>
+      </div>
+
+      <!-- ATTENDEES TABLE CARD -->
+      <div class="glass-card p-5 md:p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-lg font-black text-white">Detalle de Asistencia</h2>
+            <p class="text-xs text-slate-400 font-semibold mt-0.5">
+              <span *ngIf="selectedSession">Alumno, hora, estado, equipo asignado y gestión de justificaciones.</span>
+              <span *ngIf="!selectedSession">Selecciona una sesión a la izquierda para ver los asistentes.</span>
+            </p>
+          </div>
+          <button *ngIf="selectedSession" (click)="loadAttendees(getSessionId(selectedSession))"
+                  class="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-extrabold rounded-xl transition cursor-pointer active:scale-95 whitespace-nowrap flex-shrink-0">
+            🔄 Recargar
+          </button>
         </div>
 
-        <div *ngIf="selectedSession" class="flex gap-3 flex-wrap">
-          <div class="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <div class="text-[10px] uppercase tracking-widest font-black text-emerald-300">Registros</div>
-            <div class="text-lg font-black text-white leading-none mt-1">{{ attendees.length }}</div>
-          </div>
-          <div class="px-4 py-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-            <div class="text-[10px] uppercase tracking-widest font-black text-indigo-300">Sesión</div>
-            <div class="text-sm font-black text-white leading-none mt-1">{{ getSessionType(selectedSession) }}</div>
-          </div>
+        <!-- No selection placeholder -->
+        <div *ngIf="!selectedSession"
+             class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-12 text-center text-slate-400">
+          <div class="text-4xl mb-3">📋</div>
+          <div class="text-sm font-bold text-white">Ninguna sesión seleccionada</div>
+          <p class="text-xs text-slate-400 mt-2">Selecciona una ronda del panel izquierdo o pulsa <strong class="text-indigo-300">Ver sesión actual</strong>.</p>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading && selectedSession"
+             class="rounded-3xl border border-white/5 bg-white/3 p-8 text-center text-slate-400 text-xs font-semibold">
+          Cargando asistentes...
+        </div>
+
+        <!-- Empty state -->
+        <div *ngIf="selectedSession && !loading && attendees.length === 0"
+             class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-10 text-center">
+          <div class="text-3xl mb-3">📭</div>
+          <div class="text-sm font-bold text-white">Sin registros para esta sesión</div>
+          <p class="text-xs text-slate-400 mt-2">No se encontraron fichajes en la base de datos para esta ronda.</p>
+        </div>
+
+        <!-- TABLE -->
+        <div *ngIf="selectedSession && !loading && attendees.length > 0" class="overflow-x-auto rounded-2xl border border-white/5">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-white/3 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
+              <tr>
+                <th class="px-4 py-3.5">Alumno</th>
+                <th class="px-4 py-3.5">Fecha y Hora</th>
+                <th class="px-4 py-3.5">Estado</th>
+                <th class="px-4 py-3.5">Equipo</th>
+                <th class="px-4 py-3.5">IP</th>
+                <th class="px-4 py-3.5">Justificación</th>
+                <th class="px-4 py-3.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr *ngFor="let a of attendees" class="hover:bg-white/3 transition duration-200">
+
+                <!-- Student Name -->
+                <td class="px-4 py-4">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black border shrink-0"
+                         [ngClass]="getTipoBadgeClass(a.tipo)">
+                      {{ (a.studentName || getStudentName(a.studentId)).charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="text-xs font-black text-white">{{ a.studentName || getStudentName(a.studentId) }}</div>
+                      <div class="text-[9px] text-slate-500 font-semibold">ID {{ a.studentId }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Fecha y Hora -->
+                <td class="px-4 py-4 text-xs font-semibold text-slate-300 whitespace-nowrap">
+                  {{ a.fechaHora | date:'dd MMM yyyy, HH:mm' }}
+                </td>
+
+                <!-- Estado badge -->
+                <td class="px-4 py-4">
+                  <span class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+                        [ngClass]="getTipoBadgeClass(a.tipo)">
+                    {{ getTipoLabel(a.tipo) }}
+                  </span>
+                </td>
+
+                <!-- Equipo asignado -->
+                <td class="px-4 py-4">
+                  <span *ngIf="a.equipo" class="text-xs font-bold text-indigo-300">💻 {{ a.equipo.nombreEquipo || a.equipo.NombreEquipo || '-' }}</span>
+                  <span *ngIf="!a.equipo" class="text-[10px] text-slate-600 font-semibold">Sin equipo</span>
+                </td>
+
+                <!-- IP -->
+                <td class="px-4 py-4 text-xs font-semibold text-slate-400 whitespace-nowrap">{{ a.ip || '-' }}</td>
+
+                <!-- Justificación -->
+                <td class="px-4 py-4 max-w-[200px]">
+                  <div *ngIf="a.tipo === 'Falta'">
+                    <!-- Badge de estado justificación -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span *ngIf="a.estaJustificada"
+                            class="text-[9px] font-black px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg whitespace-nowrap">
+                        JUSTIFICADA
+                      </span>
+                      <span *ngIf="!a.estaJustificada && a.text && a.text !== 'Fichaje automático (Falta)' && !a.text.includes('Fichaje')"
+                            class="text-[9px] font-black px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg whitespace-nowrap">
+                        PENDIENTE
+                      </span>
+                      <span *ngIf="!a.estaJustificada && (!a.text || a.text.includes('Fichaje'))"
+                            class="text-[9px] font-bold px-2 py-0.5 bg-white/5 text-slate-500 border border-white/10 rounded-lg whitespace-nowrap">
+                        SIN JUSTIF.
+                      </span>
+                    </div>
+                    <!-- Texto de justificación si existe y no es autogenerado -->
+                    <p *ngIf="a.text && !a.text.includes('Fichaje')"
+                       class="text-[10px] text-slate-400 italic mt-1 line-clamp-2">
+                      "{{ a.text }}"
+                    </p>
+                  </div>
+                  <span *ngIf="a.tipo !== 'Falta'" class="text-[10px] text-slate-600 font-semibold">-</span>
+                </td>
+
+                <!-- Acciones -->
+                <td class="px-4 py-4 text-right">
+                  <div *ngIf="a.tipo === 'Falta'" class="flex items-center justify-end gap-1.5 flex-wrap">
+                    <!-- Justificar (no tiene texto real o lo quiere cambiar) -->
+                    <button (click)="abrirModalJustificar(a)"
+                            class="px-2.5 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/25 border border-indigo-500/20 text-[10px] font-black text-indigo-350 transition active:scale-95 cursor-pointer whitespace-nowrap">
+                      {{ a.estaJustificada ? '✏️ Editar' : '📝 Justificar' }}
+                    </button>
+                    <!-- Aceptar justificación de alumno pendiente -->
+                    <button *ngIf="!a.estaJustificada && a.text && !a.text.includes('Fichaje')"
+                            (click)="revisarJustificacion(a.id, true)"
+                            class="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-[10px] font-black text-emerald-350 transition active:scale-95 cursor-pointer whitespace-nowrap">
+                      ✓ Aceptar
+                    </button>
+                    <!-- Desmarcar si ya está justificada -->
+                    <button *ngIf="a.estaJustificada"
+                            (click)="revisarJustificacion(a.id, false)"
+                            class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-[10px] font-black text-rose-400 transition active:scale-95 cursor-pointer whitespace-nowrap">
+                      ✕ Desmarcar
+                    </button>
+                  </div>
+                  <span *ngIf="a.tipo !== 'Falta'" class="text-[10px] text-slate-600">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div *ngIf="!selectedSession" class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center text-slate-400">
-        Selecciona una sesión a la izquierda para ver los asistentes.
-      </div>
-
-      <div *ngIf="selectedSession && !loading && attendees.length === 0" class="rounded-3xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center">
-        <div class="text-sm font-bold text-white">Sin registros para esta sesión</div>
-        <p class="text-xs text-slate-400 mt-2">Si esperabas datos, comprueba que existan fichajes en la fecha de la sesión o en <span class="text-indigo-300 font-bold">AttendanceLogs</span>.</p>
-      </div>
-
-      <div *ngIf="loading" class="rounded-3xl border border-white/5 bg-white/3 p-8 text-center text-slate-400">
-        Cargando asistentes...
-      </div>
-
-      <div *ngIf="selectedSession && attendees.length > 0" class="overflow-x-auto rounded-3xl border border-white/5 bg-slate-950/30">
-        <table class="w-full text-left text-sm attendees-table">
-          <thead class="bg-white/3 text-slate-400 text-[10px] uppercase tracking-widest">
-            <tr>
-              <th class="px-4 py-3">Alumno</th>
-              <th class="px-4 py-3">Fecha / Hora</th>
-              <th class="px-4 py-3">Fuente</th>
-              <th class="px-4 py-3">Método</th>
-              <th class="px-4 py-3">IP</th>
-              <th class="px-4 py-3">Hostname</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let a of attendees" class="border-t border-white/5 hover:bg-white/3 transition">
-              <td class="px-4 py-4 font-black text-white">{{ a.studentId }}</td>
-              <td class="px-4 py-4 text-slate-300">{{ a.fechaHora | date:'short' }}</td>
-              <td class="px-4 py-4">
-                <span class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="a.source === 'Fichaje' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'">
-                  {{ a.source }}
-                </span>
-              </td>
-              <td class="px-4 py-4 text-slate-300">{{ a.metodo || a.tipo || '-' }}</td>
-              <td class="px-4 py-4 text-slate-300">{{ a.ip || '-' }}</td>
-              <td class="px-4 py-4 text-slate-300">{{ a.hostname || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </section>
   </div>
+
 </main>
+
+<!-- ============================== -->
+<!-- MODAL JUSTIFICAR FALTA         -->
+<!-- ============================== -->
+<div *ngIf="mostrarModalJustificar"
+     class="fixed inset-0 bg-[#05080f]/85 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-modal-bg">
+  <div class="bg-slate-900/95 border border-indigo-500/20 shadow-2xl rounded-3xl p-6 md:p-8 max-w-md w-full animate-modal-card backdrop-blur-xl">
+    <div class="mb-5 flex justify-between items-start select-none">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg">📝</span>
+          <h3 class="text-lg font-black text-white">Justificar Falta</h3>
+        </div>
+        <p class="text-xs text-indigo-300 font-bold mt-0.5">{{ justificacionForm.studentName }}</p>
+        <p class="text-xs text-slate-400 font-semibold mt-1">La falta quedará marcada como justificada al guardar.</p>
+      </div>
+      <button (click)="mostrarModalJustificar = false"
+              class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-455 hover:text-white text-xs font-bold border-0 cursor-pointer transition flex items-center justify-center">
+        ✕
+      </button>
+    </div>
+
+    <form (ngSubmit)="guardarJustificacion()" class="space-y-4">
+      <div>
+        <label class="block text-[9px] font-bold text-slate-455 uppercase tracking-widest mb-1.5 pl-1 select-none">
+          Motivo de la Justificación
+        </label>
+        <textarea [(ngModel)]="justificacionForm.texto" name="textoJustificacion" rows="4" maxlength="500" required
+                  placeholder="Ej: Permiso médico documentado, citación oficial, causa justificada..."
+                  class="w-full px-4 py-3 bg-slate-950/80 border border-white/10 hover:border-indigo-500/40 focus:border-indigo-500 rounded-2xl text-xs text-white font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 placeholder-slate-600 transition resize-none"></textarea>
+      </div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button type="button" (click)="mostrarModalJustificar = false"
+                class="flex-1 py-3 bg-white/5 hover:bg-white/10 text-xs font-black text-slate-300 hover:text-white rounded-2xl border border-white/10 hover:border-white/20 cursor-pointer active:scale-95 transition">
+          Cancelar
+        </button>
+        <button type="submit"
+                class="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-xs font-black text-white rounded-2xl border-0 cursor-pointer active:scale-95 transition shadow-lg shadow-indigo-500/20">
+          ✓ Guardar Justificación
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- FLOATING TOAST NOTIFICATION    -->
+<!-- ============================== -->
+<div *ngIf="toast.show"
+     class="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl border backdrop-blur-md shadow-2xl transition duration-300 animate-fadeIn"
+     [ngClass]="{
+       'bg-emerald-500/15 border-emerald-500/30 text-emerald-350 shadow-emerald-500/10': toast.type === 'success',
+       'bg-rose-500/15 border-rose-500/30 text-rose-350 shadow-rose-500/10': toast.type === 'error',
+       'bg-amber-500/15 border-amber-500/30 text-amber-350 shadow-amber-500/10': toast.type === 'warning',
+       'bg-indigo-500/15 border-indigo-500/30 text-indigo-350 shadow-indigo-500/10': toast.type === 'info'
+     }">
+  <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black"
+       [ngClass]="{
+         'bg-emerald-500/20 text-emerald-450': toast.type === 'success',
+         'bg-rose-500/20 text-rose-450': toast.type === 'error',
+         'bg-amber-500/20 text-amber-400': toast.type === 'warning',
+         'bg-indigo-500/20 text-indigo-400': toast.type === 'info'
+       }">
+    <span *ngIf="toast.type === 'success'">✓</span>
+    <span *ngIf="toast.type === 'error'">✕</span>
+    <span *ngIf="toast.type === 'warning'">⚠</span>
+    <span *ngIf="toast.type === 'info'">ℹ</span>
+  </div>
+  <div class="text-xs font-extrabold tracking-tight leading-normal max-w-sm">
+    {{ toast.message }}
+  </div>
+  <button (click)="toast.show = false" class="ml-2 text-slate-400 hover:text-white text-xs font-black cursor-pointer bg-transparent border-0 select-none">
+    ✕
+  </button>
+</div>
